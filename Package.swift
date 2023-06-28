@@ -5,6 +5,11 @@ import PackageDescription
 
 let package = Package(
     name: "ELSwift",
+    platforms:[
+        // NWMulticastGroup は iOS14以降の機能
+        .iOS(.v14),
+        .macOS(.v11)
+    ],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(

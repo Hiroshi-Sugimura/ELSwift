@@ -6,6 +6,9 @@ final class ELSwiftTests: XCTestCase {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
-        XCTAssertEqual(ELSwift().text, "Hello, World!")
+        print("==== ELSwift Test ====")
+        let el = ELSwift()
+        el.sendString(toip: "192.168.2.51", message: "10810000")
+        el.search()
     }
 }
