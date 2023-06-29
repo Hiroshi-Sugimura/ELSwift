@@ -68,108 +68,160 @@ public class ELSwift {
     
     public var facilities:Dictionary<String, Dictionary<String, Dictionary<String,String?>? >? > = Dictionary<String, Dictionary<String, Dictionary<String, String?>? >? >()
     
+    
+    // user settings
+    static var callbackFunc : ((_ rinfo: (address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
+    
+    static var EL_obj: [String]!
+    static var EL_cls: [String]!
+    
+    public static var Node_details: Dictionary<String, [UInt8]>!  = [String: [UInt8]]()
+    
     public static var tid:[UInt8] = [0x00, 0x01]
     
     private static var listener: NWListener!
     private static var group: NWConnectionGroup!
     
-    private(set) static var isReady: Bool = false
+    static var isReady: Bool = false
     public static var listening: Bool = true
     static var queue = DispatchQueue.global(qos: .userInitiated)
     
-    public static func initialize()  throws -> Void {
-        print("init()")
-        
-        //--- Listener
-        let params = NWParameters.udp
-        params.allowFastOpen = true
-        let port = NWEndpoint.Port(rawValue: ELSwift.PORT)
-        ELSwift.listener = try? NWListener(using: params, on: port!)
-        
-        ELSwift.listener?.stateUpdateHandler = { newState in
-            switch newState {
-            case .ready:
-                ELSwift.isReady = true
-                print("Listener connected to port \(String(describing: port))")
-                break
-            case .failed, .cancelled:
-                // Announce we are no longer able to listen
-                ELSwift.listening = false
-                ELSwift.isReady = false
-                print("Listener disconnected from port \(String(describing: port))")
-                break
-            default:
-                print("Listener connecting to port \(String(describing: port))...")
-                break
-            }
-        }
-        
-        ELSwift.listener?.newConnectionHandler = { connection in
-            connection.stateUpdateHandler = { (newState) in
+    public static func initialize(_ objList: [String], _ callback: ((_ rinfo:(address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)?, _ ipVer: UInt8? ) throws -> Void {
+        do{
+            print("init()")
+            
+            //--- Listener
+            let params = NWParameters.udp
+            params.allowFastOpen = true
+            let port = NWEndpoint.Port(rawValue: ELSwift.PORT)
+            ELSwift.listener = try? NWListener(using: params, on: port!)
+            
+            ELSwift.listener?.stateUpdateHandler = { newState in
                 switch newState {
                 case .ready:
-                    print("ready")
-                    ELSwift.receive(nWConnection: connection)
-                    break;
+                    ELSwift.isReady = true
+                    print("Listener connected to port \(String(describing: port))")
+                    break
+                case .failed, .cancelled:
+                    // Announce we are no longer able to listen
+                    ELSwift.listening = false
+                    ELSwift.isReady = false
+                    print("Listener disconnected from port \(String(describing: port))")
+                    break
                 default:
+                    print("Listener connecting to port \(String(describing: port))...")
                     break
                 }
             }
-            connection.start(queue: DispatchQueue(label: "newconn"))
             
-        }
-        ELSwift.listener?.start(queue: ELSwift.queue)
-        
-        
-        //---- multicast
-        guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
-        else { fatalError("error in Muticast") }
-        
-        ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
-        
-        ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
-            print("Received message from \(String(describing: message.remoteEndpoint))")
-            //let message = String(data: content, encoding: .utf8)
-            //let message = Data(content, encoding: .utf8)
-            print(content as Any)
-            //let sendContent = Data("ack".utf8)
-            //message.reply(content: sendContent)
-        }
-        
-        ELSwift.group.stateUpdateHandler = { (newState) in
-            print("Group entered state \(String(describing: newState))")
-            switch newState {
-            case .ready:
-                print("ready")
-                var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
-                //msg.append(contentsOf:[ESV_INFREQ, 0x01, EPC_INSLSTNTFPROP, 0x00])
-                msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
-                let groupSendContent = Data(msg)  // .data(using: .utf8)
-                
-                print("send...UDP")
-                ELSwift.group.send(content: groupSendContent) { (error)  in
-                    print("Send complete with error \(String(describing: error))")
+            ELSwift.listener?.newConnectionHandler = { connection in
+                connection.stateUpdateHandler = { (newState) in
+                    switch newState {
+                    case .ready:
+                        print("ready")
+                        ELSwift.receive(nWConnection: connection)
+                        break;
+                    default:
+                        break
+                    }
                 }
-            case .waiting(let error):
-                print("waiting")
-                print(error)
-            case .setup:
-                print("setup")
-            case .cancelled:
-                print("cancelled")
-            case .failed:
-                print("failed")
-                //case .preparing:
-                //    print("preparing")
-            default:
-                print("default")
+                connection.start(queue: DispatchQueue(label: "newconn"))
+                
             }
+            ELSwift.listener?.start(queue: ELSwift.queue)
+            
+            
+            //---- multicast
+            guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
+            else { fatalError("error in Muticast") }
+            
+            ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
+            
+            ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
+                print("Received message from \(String(describing: message.remoteEndpoint))")
+                //let message = String(data: content, encoding: .utf8)
+                //let message = Data(content, encoding: .utf8)
+                print(content as Any)
+                //let sendContent = Data("ack".utf8)
+                //message.reply(content: sendContent)
+            }
+            
+            ELSwift.group.stateUpdateHandler = { (newState) in
+                print("Group entered state \(String(describing: newState))")
+                switch newState {
+                case .ready:
+                    print("ready")
+                    var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
+                    //msg.append(contentsOf:[ESV_INFREQ, 0x01, EPC_INSLSTNTFPROP, 0x00])
+                    msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
+                    let groupSendContent = Data(msg)  // .data(using: .utf8)
+                    
+                    print("send...UDP")
+                    ELSwift.group.send(content: groupSendContent) { (error)  in
+                        print("Send complete with error \(String(describing: error))")
+                    }
+                case .waiting(let error):
+                    print("waiting")
+                    print(error)
+                case .setup:
+                    print("setup")
+                case .cancelled:
+                    print("cancelled")
+                case .failed:
+                    print("failed")
+                    //case .preparing:
+                    //    print("preparing")
+                default:
+                    print("default")
+                }
+            }
+            
+            let queue = DispatchQueue(label: "ECHONETNetwork")
+            //print(group.isUnicastDisabled)
+            ELSwift.group.start(queue: queue)
+            //group.start(queue: .main)
+            
+            
+            // 送信用ソケットの準備
+            EL_obj = objList
+            
+            let classes = objList.map{
+                ELSwift.substr( $0, 0, 4)
+            }
+            EL_cls = classes
+            
+            Node_details["80"] = [0x30]
+            Node_details["82"] = [0x01, 0x0a, 0x01, 0x00] // EL version, 1.1
+            Node_details["83"] = [0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] // identifier
+            Node_details["8a"] = [0x00, 0x00, 0x77] // maker code
+            Node_details["9d"] = [0x02, 0x80, 0xd5]       // inf map, 1 Byte目は個数
+            Node_details["9e"] = [0x00]                 // set map, 1 Byte目は個数
+            Node_details["9f"] = [0x09, 0x80, 0x82, 0x83, 0x8a, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数
+            Node_details["d3"] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, user項目
+            Node_details["d4"] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数, user項目, D4はノードプロファイルが入る
+            
+            var v = EL_obj.map{
+                ELSwift.toHexArray( $0 )
+            }
+            v.insert( [UInt8(objList.count)], at: 0 )
+            Node_details["d5"] = v.flatMap{ $0 }    // インスタンスリスト通知, user項目
+            Node_details["d6"] = Node_details["d5"]    // 自ノードインスタンスリストS, user項目
+            
+            v = EL_cls.map{
+                ELSwift.toHexArray( $0 )
+            }
+            v.insert( [UInt8(EL_cls.count)], at: 0 )
+            Node_details["d7"] = v.flatMap{ $0 }  // 自ノードクラスリストS, user項目
+            
+            // 初期化終わったのでノードのINFをだす
+            try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, Node_details["d5"]! );
+            
+            ELSwift.callbackFunc = callback
+            
+        }catch let error {
+            throw error
         }
         
-        let queue = DispatchQueue(label: "ECHONETNetwork")
-        //print(group.isUnicastDisabled)
-        ELSwift.group.start(queue: queue)
-        //group.start(queue: .main)
         
     }
     
@@ -178,7 +230,9 @@ public class ELSwift {
         group.cancel()
     }
     
-    
+    public static func IsReady() -> Bool {
+        return ELSwift.isReady
+    }
     
     //---------------------------------------
     public static func receive(nWConnection:NWConnection) -> Void {
