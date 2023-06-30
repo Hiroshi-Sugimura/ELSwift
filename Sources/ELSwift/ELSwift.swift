@@ -267,6 +267,7 @@ public class ELSwift {
                 print("sendBase() error: \(error)")
             }else{
                 print("sendBase() 送信完了")
+                socket.cancel()  // 送信したらソケット閉じる
             }
         }
 

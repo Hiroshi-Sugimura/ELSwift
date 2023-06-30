@@ -26,8 +26,8 @@ final class ELSwiftTests: XCTestCase {
                         print("air cleaner \(seoj)  \(esv)  \(detail)  \(edata)")
                     }
                 }
-                exp.fulfill()
             }, 4)
+            exp.fulfill()
         }catch{
             print("setUp error")
         }
@@ -48,6 +48,10 @@ final class ELSwiftTests: XCTestCase {
         try ELSwift.sendOPC1( "192.168.2.52", [0x05, 0xff, 0x01], [0x0e,0xf0,0x01], ELSwift.GET, 0x80, [0x00])
         
         // 変換系テスト
-                
+        
+        // 終了まち
+        
+        // 終了
+        ELSwift.release()
     }
 }
