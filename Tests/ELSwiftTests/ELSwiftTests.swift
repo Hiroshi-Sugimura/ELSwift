@@ -39,7 +39,7 @@ final class ELSwiftTests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct
         // results.
         print("==== ELSwift Test ====")
-        // 送信系のテストはどうやるの？パケットがでない
+        // 送信系のテストはどうやるの？パケットがでないときがある
         print("# search")
         try ELSwift.search()
         print("# sendString")
