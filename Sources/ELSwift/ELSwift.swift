@@ -79,7 +79,7 @@ public class ELSwift {
     
     public static var tid:[UInt8] = [0x00, 0x01]
     
-    private static var listener: NWListener!
+    // private static var listener: NWListener!
     private static var group: NWConnectionGroup!
     
     static var isReady: Bool = false
@@ -91,45 +91,46 @@ public class ELSwift {
             print("init()")
             
             //--- Listener
-            let params = NWParameters.udp
-            params.allowFastOpen = true
-            let port = NWEndpoint.Port(rawValue: ELSwift.PORT)
-            ELSwift.listener = try? NWListener(using: params, on: port!)
-            
-            ELSwift.listener?.stateUpdateHandler = { newState in
-                switch newState {
-                case .ready:
-                    ELSwift.isReady = true
-                    print("Listener connected to port \(String(describing: port))")
-                    break
-                case .failed, .cancelled:
-                    // Announce we are no longer able to listen
-                    ELSwift.listening = false
-                    ELSwift.isReady = false
-                    print("Listener disconnected from port \(String(describing: port))")
-                    break
-                default:
-                    print("Listener connecting to port \(String(describing: port))...")
-                    break
-                }
-            }
-            
-            ELSwift.listener?.newConnectionHandler = { connection in
-                connection.stateUpdateHandler = { (newState) in
-                    switch newState {
-                    case .ready:
-                        print("ready")
-                        ELSwift.receive(nWConnection: connection)
-                        break;
-                    default:
-                        break
-                    }
-                }
-                connection.start(queue: DispatchQueue(label: "newconn"))
-                
-            }
-            ELSwift.listener?.start(queue: ELSwift.queue)
-            
+            /*
+             let params = NWParameters.udp
+             params.allowFastOpen = true
+             let port = NWEndpoint.Port(rawValue: ELSwift.PORT)
+             ELSwift.listener = try? NWListener(using: params, on: port!)
+             
+             ELSwift.listener?.stateUpdateHandler = { newState in
+             switch newState {
+             case .ready:
+             ELSwift.isReady = true
+             print("Listener connected to port \(String(describing: port))")
+             break
+             case .failed, .cancelled:
+             // Announce we are no longer able to listen
+             ELSwift.listening = false
+             ELSwift.isReady = false
+             print("Listener disconnected from port \(String(describing: port))")
+             break
+             default:
+             print("Listener connecting to port \(String(describing: port))...")
+             break
+             }
+             }
+             
+             ELSwift.listener?.newConnectionHandler = { connection in
+             connection.stateUpdateHandler = { (newState) in
+             switch newState {
+             case .ready:
+             print("ready")
+             ELSwift.receive(nWConnection: connection)
+             break;
+             default:
+             break
+             }
+             }
+             connection.start(queue: DispatchQueue(label: "newconn"))
+             
+             }
+             ELSwift.listener?.start(queue: ELSwift.queue)
+             */
             
             //---- multicast
             guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
@@ -257,16 +258,38 @@ public class ELSwift {
     //---------------------------------------
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
         print("sendBase(Data)")
-        let socket = NWConnection(host:NWEndpoint.Host(toip), port:3610, using: .udp)
-        
+        let queue = DispatchQueue(label:"sendBase")
+        let socket = NWConnection( host:NWEndpoint.Host(toip), port:3610, using: .udp)
+
         // 送信完了時の処理のクロージャ
-        let completion = NWConnection.SendCompletion.contentProcessed { (error: NWError?) in
-            print("送信完了")
+        let completion = NWConnection.SendCompletion.contentProcessed { error in
+            if let error = error {
+                print("sendBase() error: \(error)")
+            }else{
+                print("sendBase() 送信完了")
+            }
+        }
+
+        socket.stateUpdateHandler = { (newState) in
+            switch newState {
+            case .ready:
+                NSLog("Ready to send")
+                // 送信
+                socket.send(content: data, completion: completion)
+            case .waiting(let error):
+                NSLog("\(#function), \(error)")
+            case .failed(let error):
+                NSLog("\(#function), \(error)")
+            case .setup: break
+            case .cancelled: break
+            case .preparing: break
+            @unknown default:
+                fatalError("Illegal state")
+            }
         }
         
-        // 送信
-        socket.send(content: data, completion: completion)
         
+        socket.start(queue:queue)
     }
     
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
@@ -511,7 +534,6 @@ public class ELSwift {
     public static func toHexString(_ byte:UInt8 ) -> String {
         return ( String(format: "%02hhx", byte) )
     }
-    
     
     
     // 16進表現の文字列を数値のバイト配列へ ok
