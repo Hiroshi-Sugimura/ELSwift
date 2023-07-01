@@ -4,8 +4,10 @@
 import Foundation
 import Network
 
+
+
 //==============================================================================
-public struct EL_STRUCTURE {
+public struct EL_STRUCTURE : Equatable{
     public var EHD : [UInt8]
     public var TID : [UInt8]
     public var SEOJ : [UInt8]
@@ -14,18 +16,33 @@ public struct EL_STRUCTURE {
     public var ESV : UInt8
     public var OPC : UInt8
     public var DETAIL: [UInt8]
-    public var DETAILs: Dictionary<String, [UInt8]>
+    public var DETAILs : Dictionary<UInt8, [UInt8]>?
     
-    public init() {
-        EHD = []
-        TID = []
-        SEOJ = []
-        DEOJ = []
+    init() {
+        EHD = [0x10, 0x81]
+        TID = [0x00, 0x00]
+        SEOJ = [0x0e, 0xf0, 0x01]
+        DEOJ = [0x0e, 0xf0, 0x01]
         EDATA = []
         ESV = 0x00
         OPC = 0x00
-        DETAIL = []
-        DETAILs = [String: [UInt8]]()
+        DETAIL = [0x00]
+    }
+    
+    init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
+        EHD = [0x10, 0x81]
+        TID = [0x00, 0x00]
+        SEOJ = [0x0e, 0xf0, 0x01]
+        DEOJ = [0x0e, 0xf0, 0x01]
+        ESV = esv
+        OPC = opc
+        DETAIL = detail
+        EDATA = [esv, opc] + detail
+        do{
+            DETAILs = try ELSwift.parseDetail(opc, detail)
+        }catch{
+            print("error")
+        }
     }
 }
 
@@ -142,7 +159,10 @@ public class ELSwift {
                 print("Received message from \(String(describing: message.remoteEndpoint))")
                 //let message = String(data: content, encoding: .utf8)
                 //let message = Data(content, encoding: .utf8)
-                print(content as Any)
+                print("content:")
+                print(content!)
+                print("message:")
+                print(message)
                 //let sendContent = Data("ack".utf8)
                 //message.reply(content: sendContent)
             }
@@ -153,7 +173,6 @@ public class ELSwift {
                 case .ready:
                     print("ready")
                     var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
-                    //msg.append(contentsOf:[ESV_INFREQ, 0x01, EPC_INSLSTNTFPROP, 0x00])
                     msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
                     let groupSendContent = Data(msg)  // .data(using: .utf8)
                     
@@ -254,13 +273,14 @@ public class ELSwift {
     }
     
     
-    
     //---------------------------------------
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
-        print("sendBase(Data)")
+        print("sendBase(Data) data:\(data)")
+        let msg:[UInt8] = [UInt8](data)
+        
         let queue = DispatchQueue(label:"sendBase")
         let socket = NWConnection( host:NWEndpoint.Host(toip), port:3610, using: .udp)
-
+        
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if let error = error {
@@ -270,13 +290,13 @@ public class ELSwift {
                 socket.cancel()  // 送信したらソケット閉じる
             }
         }
-
+        
         socket.stateUpdateHandler = { (newState) in
             switch newState {
             case .ready:
                 NSLog("Ready to send")
                 // 送信
-                socket.send(content: data, completion: completion)
+                socket.send(content: msg, completion: completion)
             case .waiting(let error):
                 NSLog("\(#function), \(error)")
             case .failed(let error):
@@ -402,19 +422,21 @@ public class ELSwift {
     // 変換系
     //////////////////////////////////////////////////////////////////////
     
-    // Detailだけをparseする，内部で主に使う mada
-    public static func parseDetail( opc:UInt8, str:String ) throws -> Dictionary<String, [UInt8]> {
-        var ret: Dictionary<String, [UInt8]> = [String: [UInt8]]() // 戻り値用，連想配列
+    // Detailだけをparseする，内部で主に使う
+    public static func parseDetail(_ opc:UInt8,_ detail:[UInt8] ) throws -> Dictionary<UInt8, [UInt8]> {
+        // print("parseDetail()")
+        var ret: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         
         do {
             var now:Int = 0  // 現在のIndex
             var epc:UInt8 = 0
             var pdc:UInt8 = 0
-            var edt:[UInt8] = []
-            let array:[UInt8] = ELSwift.toHexArray( str )  // edts
+            let array:[UInt8] = detail  // edts
+            
+            print(array)
             
             // OPCループ
-            for _ in (0 ..< opc ) { // i使ってないとかアホなwarning出るけど無視
+            for _ in (0 ..< opc ) {
                 // EPC（機能）
                 epc = array[now]
                 now += 1
@@ -423,29 +445,40 @@ public class ELSwift {
                 pdc = array[now]
                 now += 1
                 
+                var edt:[UInt8] = []  // edtは初期化しておく
+                
                 // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
                 if( pdc == 0 ) {
-                    ret[ ELSwift.toHexString(epc) ] = [0x00] // 本当はnilを入れたい
+                    ret[ epc ] = [0x00] // 本当はnilを入れたい
                 } else {
                     // PDCループ
-                    for _ in (0..<pdc) { // j使ってないとかアホなwarning出るけど無視
+                    for _ in (0..<pdc) {
                         // 登録
                         edt += [ array[now] ]
                         now += 1
                     }
-                    ret[ ELSwift.toHexString(epc) ] = try ELSwift.toHexArray( ELSwift.bytesToString( edt ) )
+                    // print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)")
+                    ret[ epc ] = try ELSwift.toHexArray( ELSwift.bytesToString( edt ) )
                 }
                 
             }  // opcループ
             
         } catch let error {
-            print( "ELSwift.parseDetail(): detail error. opc: \(opc), str: \(str)" )
+            print( "ELSwift.parseDetail(): detail error. opc: \(opc), str: \(detail)" )
             throw error
         }
         
         return ret
     }
     
+    // Detailだけをparseする，内部で主に使う
+    public static func parseDetail(_ opc:UInt8,_ str:String ) throws -> Dictionary<UInt8, [UInt8]> {
+        return try parseDetail( opc, ELSwift.toHexArray(str) )
+    }
+    
+    public static func parseDetail(_ opc:String,_ str:String ) throws -> Dictionary<UInt8, [UInt8]>  {
+        return try parseDetail( ELSwift.toHexArray(opc)[0], ELSwift.toHexArray(str) )
+    }
     
     // バイトデータをいれるとEL_STRACTURE形式にする ok
     public static func parseBytes(_ bytes:[UInt8] ) throws -> EL_STRUCTURE {
@@ -472,7 +505,6 @@ public class ELSwift {
         
     }
     
-    
     // 16進数で表現された文字列をいれるとEL_STRUCTURE形式にする ok
     public static func parseString(_ str: String ) throws -> EL_STRUCTURE {
         var eldata: EL_STRUCTURE = EL_STRUCTURE()
@@ -485,7 +517,7 @@ public class ELSwift {
             eldata.ESV = ELSwift.toHexArray( ELSwift.substr( str, 20, 2 ) )[0]
             eldata.OPC = ELSwift.toHexArray( ELSwift.substr( str, 22, 2 ) )[0]
             eldata.DETAIL = ELSwift.toHexArray( ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
-            eldata.DETAILs = try ELSwift.parseDetail( opc: eldata.OPC, str: ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
+            eldata.DETAILs = try ELSwift.parseDetail( eldata.OPC, ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
         }catch let error{
             throw error
         }
