@@ -272,8 +272,7 @@ public class ELSwift {
     
     
     //---------------------------------------
-    public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
-        let msg:[UInt8] = [UInt8](data)
+    public static func sendBase(_ toip:String,_ msg: [UInt8]) throws -> Void {
         print("sendBase(Data) data:\(msg)")
         
         let queue = DispatchQueue(label:"sendBase")
@@ -307,8 +306,13 @@ public class ELSwift {
             }
         }
         
-        
         socket.start(queue:queue)
+    }
+    
+    
+    public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
+        let msg:[UInt8] = [UInt8](data)
+        try ELSwift.sendBase(toip, msg)
     }
     
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
@@ -320,9 +324,8 @@ public class ELSwift {
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
         print("sendString()")
         // 送信
-        if let data = message.data(using: String.Encoding.utf8) {
-            try ELSwift.sendBase( toip, data )
-        }
+        let data = ELSwift.toHexArray(message)
+        try ELSwift.sendBase( toip, data )
     }
     
     // sendOPC1( targetIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00]);
@@ -366,40 +369,18 @@ public class ELSwift {
     //------------ multi send
     public static func sendBaseMulti(data: Data)  throws -> Void {
         print("sendBaseMulti(Data)")
-        
-        // group.sendの使い方がわからん
-        // 送信完了時の処理のクロージャ
-        //var completion: NWConnection.SendCompletion = .contentProcessed { (error: NWError?) in
-        //    print("send error: \(String(describing: error))")
-        //}
-        
-        // let comp : NWConnection.SendCompletion = .contentProcessed { (error) in
-        // print("応答送信完了")
-        // }
-        
-        // 送信
-        // ELSwift.group.send(content: data, completion: comp)
-        //ELSwift.group.send(content: data, completion: { error in
-        //    print("send error: \(String(describing: error))")
-        //})
-        //ELSwift.group.send(content: data, completion: NWConnection.SendCompletion)
-        
-        // sendでいってみる
-        let socket = NWConnection( host:NWEndpoint.Host( ELSwift.MultiIP ), port:3610, using: .udp)
-        
-        // 送信完了時の処理のクロージャ
-        let completion = NWConnection.SendCompletion.contentProcessed { (error: NWError?) in
-            print("送信完了")
+        ELSwift.group.send(content: data) { (error)  in
+            print("Send complete with error \(String(describing: error))")
         }
-        
-        // 送信
-        socket.send(content: data, completion: completion)
     }
     
-    public static func sendBaseMulti(array: [UInt8]) throws -> Void {
+    public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
         print("sendBaseMulti(UInt8)")
         // 送信
-        try ELSwift.sendBaseMulti(data:Data( array ) )
+        let groupSendContent = Data(msg)  // .data(using: .utf8)
+        ELSwift.group.send(content: groupSendContent) { (error)  in
+            print("Send complete with error \(String(describing: error))")
+        }
     }
     
     public static func sendStringMulti( message: String) throws -> Void {
@@ -412,7 +393,12 @@ public class ELSwift {
     
     public static func search() throws -> Void {
         print("search()")
-        try ELSwift.sendString( MultiIP, "1081000005ff010ef0016201d600")
+        var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
+        msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
+        let groupSendContent = Data(msg)  // .data(using: .utf8)
+        ELSwift.group.send(content: groupSendContent) { (error)  in
+            print("Send complete with error \(String(describing: error))")
+        }
     }
     
     
