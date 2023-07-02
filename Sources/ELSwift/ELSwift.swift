@@ -539,7 +539,7 @@ public class ELSwift {
     }
     
     
-    // 文字列操作が我慢できないので作る（1Byte文字固定）  ok
+    // 文字列操作が我慢できないので作る（1Byte文字固定）
     public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) -> String {
         let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
         let end   = str.index( begin, offsetBy: Int(count))
@@ -548,15 +548,20 @@ public class ELSwift {
     }
     
     
-    // ELDATAをいれるとELらしい切り方のStringを得る  ok
+    // ELDATAをいれるとELらしい切り方のStringを得る
     public static func getSeparatedString_ELDATA(_ eldata : EL_STRUCTURE ) -> String {
-        return ( "\(eldata.EHD) \(eldata.TID) \(eldata.SEOJ) \(eldata.DEOJ) \(eldata.EDATA)" )
+        let ehd = eldata.EHD.map{ ELSwift.toHexString($0)}.joined()
+        let tid = eldata.TID.map{ ELSwift.toHexString($0)}.joined()
+        let seoj = eldata.SEOJ.map{ ELSwift.toHexString($0)}.joined()
+        let deoj = eldata.DEOJ.map{ ELSwift.toHexString($0)}.joined()
+        let edata = eldata.EDATA.map{ ELSwift.toHexString($0)}.joined()
+        return ( "\(ehd) \(tid) \(seoj) \(deoj) \(edata)" )
     }
     
     
-    // EL_STRACTURE形式から配列へ mada
+    // EL_STRACTURE形式から配列へ
     public static func ELDATA2Array(_ eldata: EL_STRUCTURE ) throws -> [UInt8] {
-        let ret = ELSwift.toHexArray( "\(eldata.EHD)\(eldata.TID)\(eldata.SEOJ)\(eldata.DEOJ)\(eldata.EDATA)" )
+        let ret = eldata.EHD + eldata.TID + eldata.SEOJ + eldata.DEOJ + eldata.EDATA
         return ret
     }
     
@@ -599,4 +604,26 @@ public class ELSwift {
     }
     
     
+    // parse Propaty Map Form 2
+    // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること, bitstr = EDT
+    // bitstrは 数値配列[0x01, 0x30]のようなやつ、か文字列"0130"のようなやつを受け付ける
+    public static func parseMapForm2(_ bitArray:[UInt8]) throws -> [UInt8] {
+        var ret:[UInt8] = [0]
+        var val:UInt8   = 0x7f  // 計算上 +1が溢れないように7fから始める
+
+        // bit loop
+        for bit in 0 ... 7 {
+            // byte loop
+            for byt in 1 ... 16 {
+                val += 1
+                if ( ((bitArray[byt] >> bit) & 0x01) != 0 ) {
+                    ret.append( UInt8(val) )
+                }
+            }
+        }
+
+        ret[0] = UInt8(ret.count - 1);
+        return ret;
+    }
+
 }
