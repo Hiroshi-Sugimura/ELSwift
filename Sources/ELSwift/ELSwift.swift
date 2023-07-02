@@ -2,6 +2,7 @@
 // SUGIMURA Hiroshi
 //==============================================================================
 import Foundation
+import Swift
 import Network
 
 
@@ -31,9 +32,9 @@ public struct EL_STRUCTURE : Equatable{
     
     init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
         EHD = [0x10, 0x81]
-        TID = [0x00, 0x00]
-        SEOJ = [0x0e, 0xf0, 0x01]
-        DEOJ = [0x0e, 0xf0, 0x01]
+        TID = tid
+        SEOJ = seoj
+        DEOJ = deoj
         ESV = esv
         OPC = opc
         DETAIL = detail
@@ -156,13 +157,10 @@ public class ELSwift {
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
             
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
-                print("Received message from \(String(describing: message.remoteEndpoint))")
                 //let message = String(data: content, encoding: .utf8)
                 //let message = Data(content, encoding: .utf8)
-                print("content:")
-                print(content!)
-                print("message:")
-                print(message)
+                print("-> message from: \(message.remoteEndpoint!)")
+                print("-> content: \([UInt8](content!))" )
                 //let sendContent = Data("ack".utf8)
                 //message.reply(content: sendContent)
             }
@@ -275,8 +273,8 @@ public class ELSwift {
     
     //---------------------------------------
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
-        print("sendBase(Data) data:\(data)")
         let msg:[UInt8] = [UInt8](data)
+        print("sendBase(Data) data:\(msg)")
         
         let queue = DispatchQueue(label:"sendBase")
         let socket = NWConnection( host:NWEndpoint.Host(toip), port:3610, using: .udp)
@@ -529,15 +527,14 @@ public class ELSwift {
     // 文字列をいれるとELらしい切り方のStringを得る  ok
     public static func getSeparatedString_String(_ str: String ) -> String {
         var ret:String = ""
-        
         let a = ELSwift.substr( str, 0, 4 )
         let b = ELSwift.substr( str, 4, 4 )
         let c = ELSwift.substr( str, 8, 6 )
         let d = ELSwift.substr( str, 14, 6 )
         let e = ELSwift.substr( str, 20, 2 )
-        let f = ELSwift.substr( str, 22, UInt(str.utf8.count - 20) )
+        let f = ELSwift.substr( str, 22, UInt(str.utf8.count - 22) )
         ret = "\(a) \(b) \(c) \(d) \(e) \(f)"
-        
+
         return ret
     }
     

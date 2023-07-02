@@ -1,3 +1,4 @@
+import Swift
 import XCTest
 @testable import ELSwift
 
@@ -17,15 +18,15 @@ final class ELSwiftTests: XCTestCase {
                     return
                 }
                 /*
-                if let elsv = els {
-                    let seoj = elsv.SEOJ.map{ String($0, radix:16) }
-                    let esv = String(elsv.ESV, radix:16)
-                    let detail = elsv.DETAIL.map{ String($0, radix:16) }
-                    let edata = elsv.EDATA
-                    if( elsv.SEOJ[0...1] == [0x01, 0x35] ) { // air cleanerからの送信だけ処理する
-                        print("air cleaner \(seoj)  \(esv)  \(detail)  \(edata)")
-                    }
-                }
+                 if let elsv = els {
+                 let seoj = elsv.SEOJ.map{ String($0, radix:16) }
+                 let esv = String(elsv.ESV, radix:16)
+                 let detail = elsv.DETAIL.map{ String($0, radix:16) }
+                 let edata = elsv.EDATA
+                 if( elsv.SEOJ[0...1] == [0x01, 0x35] ) { // air cleanerからの送信だけ処理する
+                 print("air cleaner \(seoj)  \(esv)  \(detail)  \(edata)")
+                 }
+                 }
                  */
             }, 4)
             exp.fulfill()
@@ -53,21 +54,21 @@ final class ELSwiftTests: XCTestCase {
         // 変換
         //////////////////////////////////////////////////////////////////////
         // Detail
-        print("parseDetail, OPC=1")
+        print("-- parseDetail, OPC=1")
         var a: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         a[0x80] = [0x30]
         XCTAssertEqual(
             try ELSwift.parseDetail( "01", "800130" ),
             a)
         
-        print("parseDetail, OPC=1, EPC=2")
+        print("-- parseDetail, OPC=1, EPC=2")
         var b: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         b[0xb9] = [0x12, 0x34]
         XCTAssertEqual(
             try ELSwift.parseDetail( "01", "B9021234" ),
             b)
         
-        print("parseDetail, OPC=4")
+        print("-- parseDetail, OPC=4")
         var c: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         c[0x80] = [0x31]
         c[0xb0] = [0x42]
@@ -77,7 +78,7 @@ final class ELSwiftTests: XCTestCase {
             try ELSwift.parseDetail( "04", "800131b00142bb011cb30118" ),
             c)
         
-        print("parseDetail, OPC=5, EPC=2")
+        print("-- parseDetail, OPC=5, EPC=2")
         var d: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         d[0x80] = [0x31]
         d[0xb0] = [0x42]
@@ -118,31 +119,21 @@ final class ELSwiftTests: XCTestCase {
          "8a": "000077", "9d": "0580818fb0a0", "9e": "0680818fb0b3a0" });
          */
         
-        /*
         // バイトデータをいれるとELDATA形式にする
-        print("parseBytes, OPC=1")
-        var e:EL_STRUCTURE = EL_STRUCTURE( tid:"0000", seoj: "05ff01", deoj: "0ef001",  esv: "62",  opc: "01",  detail: "800130" )
+        print("-- parseBytes, OPC=1")
+        let e:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x01,  detail: [0x80, 0x01, 0x30] )
         XCTAssertEqual(
             try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x01, 0x80, 0x01, 0x30] ),
             e)
-         */
+        
+        // 16進数で表現された文字列をいれるとELDATA形式にする
+        print("-- parseBytes, OPC=4")
+        let f:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x04,  detail: [0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] )
+        XCTAssertEqual(
+            try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] ),
+            f)
         
         /*
-         // 16進数で表現された文字列をいれるとELDATA形式にする
-         print("parseBytes, OPC=4")
-         XCTAssertEqual(
-         try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] ),
-         { EHD: "1081",
-         TID: "0000",
-         SEOJ: "05ff01",
-         DEOJ: "0ef001",
-         EDATA: "6204800131b00142bb011cb30118",
-         ESV: "62",
-         OPC: "04",
-         DETAIL: "800131b00142bb011cb30118",
-         DETAILs: { "80": "31", "b0": "42", "bb": "1c", "b3": "18" } });
-         
-         
          print("parseBytes exception case, large opc")
          expect(function() {
          // large opc                                                                        __
@@ -151,14 +142,13 @@ final class ELSwiftTests: XCTestCase {
          */
         
         // 16進数で表現された文字列をいれるとELDATA形式にする
-        print("parseString, OPC=1")
-        var e:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x01,  detail: [0x80, 0x01, 0x30] )
+        print("-- parseString, OPC=1")
         XCTAssertEqual(
             try ELSwift.parseString( "1081000005ff010ef0016201800130" ),
             e )
-         
+        
         /*
-         // 16�i���ŕ\�����ꂽ�������������ELDATA�`���ɂ���, ����OPC
+         // 16進数で表現された文字列をいれるとELDATA形式にする
          print("parseString, OPC=4")
          XCTAssertEqual(
          try ELSwift.parseString( "1081000005ff010ef0016204800131b00142bb011cb30118" ),
@@ -187,15 +177,21 @@ final class ELSwiftTests: XCTestCase {
          AMF: "0003000e000106020105ff0162010100" });
          */
         
-        /*
-         // �������������EL�炵���؂����String�𓾂�
-         print("getSeparatedString_String")
+        print("-- substr")
+        XCTAssertEqual(
+        ELSwift.substr( "01234567890", 2, 3),
+        "234"
+        )
+        
+         // 文字列をいれるとELらしい切り方のStringを得る
+         print("-- getSeparatedString_String")
          XCTAssertEqual(
          // input
-         try ELSwift.getSeparatedString_String( "1081000005ff010ef0016201300180" ),
+         ELSwift.getSeparatedString_String( "1081000005ff010ef0016201300180" ),
          // output
          "1081 0000 05ff01 0ef001 62 01300180");
          
+        /*
          print("getSeparatedString_String exception case")
          expect(function() {
          // large opc
@@ -246,24 +242,24 @@ final class ELSwiftTests: XCTestCase {
          */
         
         // 1バイトを文字列の16進表現へ（1Byteは必ず2文字にする）
-        print("toHexString")
+        print("-- toHexString")
         XCTAssertEqual(
             ELSwift.toHexString( 65 ),
             "41")
         
         // 16進表現の文字列を数値のバイト配列へ
-        print("toHexArray")
+        print("-- toHexArray")
         XCTAssertEqual(
             ELSwift.toHexArray( "418081A0A1B0F0FF" ),
             [65, 128, 129, 160, 161, 176, 240, 255])
         
-        print("toHexArray exception case, empty")            // empty case
+        print("-- toHexArray exception case, empty")            // empty case
         XCTAssertEqual(
             ELSwift.toHexArray(""),
             []);
         
         // バイト配列を文字列にかえる
-        print("bytesToString")
+        print("-- bytesToString")
         XCTAssertEqual(
             try ELSwift.bytesToString( [ 34, 130, 132, 137, 146, 148, 149, 150, 151, 155, 162, 164, 165, 167, 176, 180, 183, 194, 196, 200, 210, 212, 216, 218, 219, 226, 228, 232, 234, 235, 240, 244, 246, 248, 250 ] ),
             "2282848992949596979ba2a4a5a7b0b4b7c2c4c8d2d4d8dadbe2e4e8eaebf0f4f6f8fa");
