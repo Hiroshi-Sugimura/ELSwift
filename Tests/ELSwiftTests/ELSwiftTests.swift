@@ -89,17 +89,23 @@ final class ELSwiftTests: XCTestCase {
             try ELSwift.parseDetail( "05", "800131b00142bb011cb9021234b30118" ),
             d )
         
-        /*
-         print("parseDetail, ???")
-         XCTAssertEqual(
-         try ELSwift.parseDetail( "08", "80013181010f8204000050018311fe000077000002eaed646f381e000000028801428a030000779d060580818fb0a09e070680818fb0b3a0" ),
-         {   "80": "31", "81": "0f", "82": "00005001", "83": "fe000077000002eaed646f381e00000002", "88": "42",
-         "8a": "000077", "9d": "0580818fb0a0", "9e": "0680818fb0b3a0" });
-         */
+        print("parseDetail, ???")
+        var g: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
+        g[0x80] = [0x31]
+        g[0x81] = [0x0f]
+        g[0x82] = [0x00, 0x00, 0x50, 0x01]
+        g[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0xea, 0xed, 0x64, 0x6f, 0x38, 0x1e, 0x00, 0x00, 0x00, 0x02]
+        g[0x88] = [0x42]
+        g[0x8a] = [0x00, 0x00, 0x77]
+        g[0x9d] = [0x05, 0x80, 0x81, 0x8f, 0xb0, 0xa0]
+        g[0x9e] = [0x06, 0x80, 0x81, 0x8f, 0xb0, 0xb3, 0xa0]
+        XCTAssertEqual(
+            try ELSwift.parseDetail( "08", "80013181010f8204000050018311fe000077000002eaed646f381e000000028801428a030000779d060580818fb0a09e070680818fb0b3a0" ),
+            g);
         
         /*
          print("parseDetail, BAD EDATA")
-         XCTAssertThrows(
+         XCTAssertThrowsError (
          // large opc     __
          try ELSwift.parseDetail( "06", "D30400000001D70106E00400" )
          )
@@ -179,18 +185,18 @@ final class ELSwiftTests: XCTestCase {
         
         print("-- substr")
         XCTAssertEqual(
-        ELSwift.substr( "01234567890", 2, 3),
-        "234"
+            try ELSwift.substr( "01234567890", 2, 3),
+            "234"
         )
         
-         // 文字列をいれるとELらしい切り方のStringを得る
-         print("-- getSeparatedString_String")
-         XCTAssertEqual(
-         // input
-         ELSwift.getSeparatedString_String( "1081000005ff010ef0016201300180" ),
-         // output
-         "1081 0000 05ff01 0ef001 62 01300180");
-         
+        // 文字列をいれるとELらしい切り方のStringを得る
+        print("-- getSeparatedString_String")
+        XCTAssertEqual(
+            // input
+            try ELSwift.getSeparatedString_String( "1081000005ff010ef0016201300180" ),
+            // output
+            "1081 0000 05ff01 0ef001 62 01300180");
+        
         /*
          print("getSeparatedString_String exception case")
          expect(function() {
@@ -199,28 +205,28 @@ final class ELSwiftTests: XCTestCase {
          }).to.throw(Error);
          
          */
-         
-         // ELDATAをいれるとELらしい切り方のStringを得る
-         print("getSeparatedString_ELDATA")
-         XCTAssertEqual(
-         ELSwift.getSeparatedString_ELDATA(f),
-         "1081 0000 05ff01 0ef001 6204800131b00142bb011cb30118"
-         );
-         
+        
+        // ELDATAをいれるとELらしい切り方のStringを得る
+        print("getSeparatedString_ELDATA")
+        XCTAssertEqual(
+            ELSwift.getSeparatedString_ELDATA(f),
+            "1081 0000 05ff01 0ef001 6204800131b00142bb011cb30118"
+        );
+        
         /*
-        print("getSeparatedString_ELDATA exception case, null")
+         print("getSeparatedString_ELDATA exception case, null")
          expect(function() {
          // null case
          try ELSwift.getSeparatedString_ELDATA( );
          }).to.throw(Error);
          */
         
-         // ELDATA形式から配列へ
-         print("ELDATA2Array")
-         XCTAssertEqual(
-         try ELSwift.ELDATA2Array( f ),
-         // output
-         [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] );
+        // ELDATA形式から配列へ
+        print("ELDATA2Array")
+        XCTAssertEqual(
+            try ELSwift.ELDATA2Array( f ),
+            // output
+            [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] );
         
         // 1バイトを文字列の16進表現へ（1Byteは必ず2文字にする）
         print("-- toHexString")
@@ -231,12 +237,12 @@ final class ELSwiftTests: XCTestCase {
         // 16進表現の文字列を数値のバイト配列へ
         print("-- toHexArray")
         XCTAssertEqual(
-            ELSwift.toHexArray( "418081A0A1B0F0FF" ),
+            try ELSwift.toHexArray( "418081A0A1B0F0FF" ),
             [65, 128, 129, 160, 161, 176, 240, 255])
         
         print("-- toHexArray exception case, empty")            // empty case
         XCTAssertEqual(
-            ELSwift.toHexArray(""),
+            try ELSwift.toHexArray(""),
             []);
         
         // バイト配列を文字列にかえる
@@ -305,43 +311,41 @@ final class ELSwiftTests: XCTestCase {
          print("search")
          try ELSwift.search ();
          */
-
+        
         // parse Propaty Map Form 2
         // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること
-        print("parseMapForm2 (16 props)")
+        print("-- parseMapForm2 (16 props)")
         XCTAssertEqual(
             try ELSwift.parseMapForm2( [0x10, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01] ),  // 16 properties
             [ 0x10, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f ] )
         
+        // parse Propaty Map Form 2
+        // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること
+        print("-- parseMapForm2 (16 props)")
+        XCTAssertEqual(
+            try ELSwift.parseMapForm2( "1001010101010101010101010101010101" ),  // 16 properties
+            [ 0x10, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f ] );
+        
+        print("-- parseMapForm2 (16 props)")
+        XCTAssertEqual(
+            // input
+            try ELSwift.parseMapForm2( "1041414100004000604100410000020202" ),  // equal and more than 16 properties
+            // output
+            [  16, 128, 129, 130, 136, 138, 157, 158, 159, 215, 224, 225, 226, 229, 231, 232, 234 ] ); // 16
+        
+        print("-- parseMapForm2 (54 props)")
+        XCTAssertEqual(
+            // input
+            try ELSwift.parseMapForm2( "36b1b1b1b1b0b0b1b3b3a1838101838383" ),  // 54 properties
+            // output
+            [ 0x36, // = 54
+              0x80, 0x81, 0x82, 0x83, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, // 14
+              0x97, 0x98, 0x9a, 0x9d, 0x9e, 0x9f, // 6
+              0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, // 9
+              0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,  // 10
+              0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfd, 0xfe, 0xff ] ); // 15
+        
         /*
-         // parse Propaty Map Form 2
-         // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること
-         print("parseMapForm2 (16 props)")
-         XCTAssertEqual(
-         try ELSwift.parseMapForm2( "1001010101010101010101010101010101" ),  // 16 properties
-         [ 0x10, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f ] );
-         */
-
-        /*
-         print("parseMapForm2 (16 props)")
-         XCTAssertEqual(
-         // input
-         try ELSwift.parseMapForm2( "1041414100004000604100410000020202" ),  // equal and more than 16 properties
-         // output
-         [  16, 128, 129, 130, 136, 138, 157, 158, 159, 215, 224, 225, 226, 229, 231, 232, 234 ] ); // 16
-         
-         print("parseMapForm2 (54 props)")
-         XCTAssertEqual(
-         // input
-         try ELSwift.parseMapForm2( "36b1b1b1b1b0b0b1b3b3a1838101838383" ),  // 54 properties
-         // output
-         [ 0x36, // = 54
-         0x80, 0x81, 0x82, 0x83, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, // 14
-         0x97, 0x98, 0x9a, 0x9d, 0x9e, 0x9f, // 6
-         0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, // 9
-         0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,  // 10
-         0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfd, 0xfe, 0xff ] ); // 15
-         
          print("parseMapForm2 exception case, null")
          expect(function() {
          // empty case
@@ -370,7 +374,10 @@ final class ELSwiftTests: XCTestCase {
          done();
          } );
          } );
-         
+         */
+        
+        
+        /*
          // プロパティ16個以上（記述形式2,0x10個）
          print("PropertyMap 16 bytes", function (done) {
          let rinfo = {address: "127.0.0.1"};

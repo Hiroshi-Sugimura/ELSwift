@@ -2,7 +2,6 @@
 // SUGIMURA Hiroshi
 //==============================================================================
 import Foundation
-import Swift
 import Network
 
 
@@ -203,8 +202,8 @@ public class ELSwift {
             // 送信用ソケットの準備
             EL_obj = objList
             
-            let classes = objList.map{
-                ELSwift.substr( $0, 0, 4)
+            let classes = try objList.map{
+                try ELSwift.substr( $0, 0, 4)
             }
             EL_cls = classes
             
@@ -218,15 +217,15 @@ public class ELSwift {
             Node_details["d3"] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, user項目
             Node_details["d4"] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数, user項目, D4はノードプロファイルが入る
             
-            var v = EL_obj.map{
-                ELSwift.toHexArray( $0 )
+            var v = try EL_obj.map{
+                try ELSwift.toHexArray( $0 )
             }
             v.insert( [UInt8(objList.count)], at: 0 )
             Node_details["d5"] = v.flatMap{ $0 }    // インスタンスリスト通知, user項目
             Node_details["d6"] = Node_details["d5"]    // 自ノードインスタンスリストS, user項目
             
-            v = EL_cls.map{
-                ELSwift.toHexArray( $0 )
+            v = try EL_cls.map{
+                try ELSwift.toHexArray( $0 )
             }
             v.insert( [UInt8(EL_cls.count)], at: 0 )
             Node_details["d7"] = v.flatMap{ $0 }  // 自ノードクラスリストS, user項目
@@ -324,7 +323,7 @@ public class ELSwift {
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
         print("sendString()")
         // 送信
-        let data = ELSwift.toHexArray(message)
+        let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBase( toip, data )
     }
     
@@ -493,15 +492,15 @@ public class ELSwift {
     public static func parseString(_ str: String ) throws -> EL_STRUCTURE {
         var eldata: EL_STRUCTURE = EL_STRUCTURE()
         do{
-            eldata.EHD = ELSwift.toHexArray( ELSwift.substr( str, 0, 4 ) )
-            eldata.TID = ELSwift.toHexArray( ELSwift.substr( str, 4, 4 ) )
-            eldata.SEOJ = ELSwift.toHexArray( ELSwift.substr( str, 8, 6 ) )
-            eldata.DEOJ = ELSwift.toHexArray( ELSwift.substr( str, 14, 6 ) )
-            eldata.EDATA = ELSwift.toHexArray( ELSwift.substr( str, 20, UInt(str.utf8.count - 20) ) )
-            eldata.ESV = ELSwift.toHexArray( ELSwift.substr( str, 20, 2 ) )[0]
-            eldata.OPC = ELSwift.toHexArray( ELSwift.substr( str, 22, 2 ) )[0]
-            eldata.DETAIL = ELSwift.toHexArray( ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
-            eldata.DETAILs = try ELSwift.parseDetail( eldata.OPC, ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
+            eldata.EHD = try ELSwift.toHexArray( try ELSwift.substr( str, 0, 4 ) )
+            eldata.TID = try ELSwift.toHexArray( try ELSwift.substr( str, 4, 4 ) )
+            eldata.SEOJ = try ELSwift.toHexArray( try ELSwift.substr( str, 8, 6 ) )
+            eldata.DEOJ = try ELSwift.toHexArray( try ELSwift.substr( str, 14, 6 ) )
+            eldata.EDATA = try ELSwift.toHexArray( try ELSwift.substr( str, 20, UInt(str.utf8.count - 20) ) )
+            eldata.ESV = try ELSwift.toHexArray( try ELSwift.substr( str, 20, 2 ) )[0]
+            eldata.OPC = try ELSwift.toHexArray( try ELSwift.substr( str, 22, 2 ) )[0]
+            eldata.DETAIL = try ELSwift.toHexArray( try ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
+            eldata.DETAILs = try ELSwift.parseDetail( eldata.OPC, try ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
         }catch let error{
             throw error
         }
@@ -511,14 +510,14 @@ public class ELSwift {
     
     
     // 文字列をいれるとELらしい切り方のStringを得る  ok
-    public static func getSeparatedString_String(_ str: String ) -> String {
+    public static func getSeparatedString_String(_ str: String ) throws -> String {
         var ret:String = ""
-        let a = ELSwift.substr( str, 0, 4 )
-        let b = ELSwift.substr( str, 4, 4 )
-        let c = ELSwift.substr( str, 8, 6 )
-        let d = ELSwift.substr( str, 14, 6 )
-        let e = ELSwift.substr( str, 20, 2 )
-        let f = ELSwift.substr( str, 22, UInt(str.utf8.count - 22) )
+        let a = try ELSwift.substr( str, 0, 4 )
+        let b = try ELSwift.substr( str, 4, 4 )
+        let c = try ELSwift.substr( str, 8, 6 )
+        let d = try ELSwift.substr( str, 14, 6 )
+        let e = try ELSwift.substr( str, 20, 2 )
+        let f = try ELSwift.substr( str, 22, UInt(str.utf8.count - 22) )
         ret = "\(a) \(b) \(c) \(d) \(e) \(f)"
 
         return ret
@@ -526,11 +525,15 @@ public class ELSwift {
     
     
     // 文字列操作が我慢できないので作る（1Byte文字固定）
-    public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) -> String {
-        let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
-        let end   = str.index( begin, offsetBy: Int(count))
-        let ret   = String(str[begin..<end])
-        return( ret )
+    public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
+        do{
+            let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
+            let end   = str.index( begin, offsetBy: Int(count))
+            let ret   = String(str[begin..<end])
+            return ret
+        }catch let error{
+            throw error
+        }
     }
     
     
@@ -558,18 +561,18 @@ public class ELSwift {
     
     
     // 16進表現の文字列を数値のバイト配列へ ok
-    public static func toHexArray(_ str: String ) -> [UInt8] {
+    public static func toHexArray(_ str: String ) throws -> [UInt8] {
         var ret: [UInt8] = []
         
         //for i in (0..<str.utf8.count); i += 2 ) {
         // Swift 3.0 ready
-        stride(from:0, to: str.utf8.count, by: 2).forEach {
+        try stride(from:0, to: str.utf8.count, by: 2).forEach {
             let i = $0
             
             // var l = ELSwift.substr( str, i, 1 )
             // var r = ELSwift.substr( str, i+1, 1 )
             
-            let hexString = ELSwift.substr( str, UInt(i), 2 )
+            let hexString = try ELSwift.substr( str, UInt(i), 2 )
             let hex = Int(hexString, radix: 16) ?? 0
             
             ret += [ UInt8(hex) ]
@@ -609,7 +612,12 @@ public class ELSwift {
         }
 
         ret[0] = UInt8(ret.count - 1);
-        return ret;
+        return ret
+    }
+    
+    // 文字列入力もできる
+    public static func parseMapForm2(_ bitString:String ) throws -> [UInt8] {
+        return try ELSwift.parseMapForm2( ELSwift.toHexArray(bitString) )
     }
 
 }
