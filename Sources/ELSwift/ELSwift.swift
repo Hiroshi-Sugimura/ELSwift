@@ -366,7 +366,7 @@ public class ELSwift {
     
     
     //------------ multi send
-    public static func sendBaseMulti(data: Data)  throws -> Void {
+    public static func sendBaseMulti(_ data: Data)  throws -> Void {
         print("sendBaseMulti(Data)")
         ELSwift.group.send(content: data) { (error)  in
             print("Send complete with error \(String(describing: error))")
@@ -385,9 +385,8 @@ public class ELSwift {
     public static func sendStringMulti( message: String) throws -> Void {
         print("sendStringMulti()")
         // 送信
-        if let data = message.data(using: String.Encoding.utf8) {
-            try ELSwift.sendBaseMulti(data: data )
-        }
+        let data = try ELSwift.toHexArray(message)
+        try ELSwift.sendBaseMulti( data )
     }
     
     public static func search() throws -> Void {
