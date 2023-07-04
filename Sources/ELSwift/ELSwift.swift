@@ -49,7 +49,10 @@ public struct EL_STRUCTURE : Equatable{
 
 //==============================================================================
 enum ELError: Error {
+    case BadNetwork
+    case BadString(String)
     case BadReceivedData
+    case other(String)
 }
 
 
@@ -382,11 +385,46 @@ public class ELSwift {
         }
     }
     
-    public static func sendStringMulti( message: String) throws -> Void {
+    public static func sendStringMulti(_ message: String) throws -> Void {
         print("sendStringMulti()")
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBaseMulti( data )
+    }
+    
+    public static func sendOPC1Multi(_ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
+        do{
+            var binArray:[UInt8]
+            
+            if( esv == ELSwift.GET ) { // get
+                binArray = [
+                    0x10, 0x81,
+                    0x00, 0x00,
+                    seoj[0], seoj[1], seoj[2],
+                    deoj[0], deoj[1], deoj[2],
+                    esv,
+                    0x01,
+                    epc,
+                    0x00]
+                
+            }else{
+                binArray = [
+                    0x10, 0x81,
+                    0x00, 0x00,
+                    seoj[0], seoj[1], seoj[2],
+                    deoj[0], deoj[1], deoj[2],
+                    esv,
+                    0x01,
+                    epc,
+                    UInt8(edt.count)] + edt
+                
+            }
+            
+            // データができたので送信する
+            try ELSwift.sendBaseMulti( binArray )
+        }catch let error{
+            throw error
+        }
     }
     
     public static func search() throws -> Void {
@@ -518,21 +556,22 @@ public class ELSwift {
         let e = try ELSwift.substr( str, 20, 2 )
         let f = try ELSwift.substr( str, 22, UInt(str.utf8.count - 22) )
         ret = "\(a) \(b) \(c) \(d) \(e) \(f)"
-
+        
         return ret
     }
     
     
     // 文字列操作が我慢できないので作る（1Byte文字固定）
     public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
-        do{
-            let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
-            let end   = str.index( begin, offsetBy: Int(count))
-            let ret   = String(str[begin..<end])
-            return ret
-        }catch let error{
-            throw error
-        }
+        // pre-condition
+        let len = str.count
+        if( len < begginingIndex + count ) { throw ELError.other("BadRange str:\(str), begin:\(begginingIndex), count:\(count)") }
+        
+        // チェック後
+        let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
+        let end   = str.index( begin, offsetBy: Int(count))
+        let ret   = String(str[begin..<end])
+        return ret
     }
     
     
@@ -598,7 +637,7 @@ public class ELSwift {
     public static func parseMapForm2(_ bitArray:[UInt8]) throws -> [UInt8] {
         var ret:[UInt8] = [0]
         var val:UInt8   = 0x7f  // 計算上 +1が溢れないように7fから始める
-
+        
         // bit loop
         for bit in 0 ... 7 {
             // byte loop
@@ -609,7 +648,7 @@ public class ELSwift {
                 }
             }
         }
-
+        
         ret[0] = UInt8(ret.count - 1);
         return ret
     }
@@ -618,5 +657,5 @@ public class ELSwift {
     public static func parseMapForm2(_ bitString:String ) throws -> [UInt8] {
         return try ELSwift.parseMapForm2( ELSwift.toHexArray(bitString) )
     }
-
+    
 }
