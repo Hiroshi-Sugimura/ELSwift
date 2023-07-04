@@ -103,21 +103,7 @@ final class ELSwiftTests: XCTestCase {
             try ELSwift.parseDetail( "08", "80013181010f8204000050018311fe000077000002eaed646f381e000000028801428a030000779d060580818fb0a09e070680818fb0b3a0" ),
             g);
         
-        /*
-         print("parseDetail, BAD EDATA")
-         XCTAssertThrowsError (
-         // large opc     __
-         try ELSwift.parseDetail( "06", "D30400000001D70106E00400" )
-         )
-         */
-        
-        /*
-         print("parseDetail exception case, large opc")
-         expect(function() {
-         // large opc     __
-         try ELSwift.parseDetail( "03", "300180310288FF" )
-         }).to.throw(Error);
-         
+/*
          print("parseDetail exception case, smart meter")
          XCTAssertEqual(
          try ELSwift.parseDetail( "06", "D30400000001D70106E004000C6C96E30400000006E7040000036" ),
@@ -138,15 +124,7 @@ final class ELSwiftTests: XCTestCase {
         XCTAssertEqual(
             try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] ),
             f)
-        
-        /*
-         print("parseBytes exception case, large opc")
-         expect(function() {
-         // large opc                                                                        __
-         try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x02, 0x30, 0x01, 0x80] )
-         }).to.throw(Error);
-         */
-        
+                
         // 16進数で表現された文字列をいれるとELDATA形式にする
         print("-- parseString, OPC=1")
         XCTAssertEqual(
@@ -167,14 +145,7 @@ final class ELSwiftTests: XCTestCase {
          OPC: "04",
          DETAIL: "800131b00142bb011cb30118",
          DETAILs: { "80": "31", "b0": "42", "bb": "1c", "b3": "18" } });
-         
-         
-         print("parseString exception case, large opc")
-         expect(function() {
-         // large opc
-         try ELSwift.parseString( "1081000005ff010ef0016202300180" )
-         }).to.throw(Error);
-         
+                  
          // format 2
          print("parseString, format 2 (Mitsubishi TV)")
          XCTAssertEqual(
@@ -197,30 +168,13 @@ final class ELSwiftTests: XCTestCase {
             // output
             "1081 0000 05ff01 0ef001 62 01300180");
         
-        /*
-         print("getSeparatedString_String exception case")
-         expect(function() {
-         // large opc
-         try ELSwift.getSeparatedString_String( )
-         }).to.throw(Error);
-         
-         */
-        
         // ELDATAをいれるとELらしい切り方のStringを得る
         print("getSeparatedString_ELDATA")
         XCTAssertEqual(
             ELSwift.getSeparatedString_ELDATA(f),
             "1081 0000 05ff01 0ef001 6204800131b00142bb011cb30118"
         );
-        
-        /*
-         print("getSeparatedString_ELDATA exception case, null")
-         expect(function() {
-         // null case
-         try ELSwift.getSeparatedString_ELDATA( );
-         }).to.throw(Error);
-         */
-        
+                
         // ELDATA形式から配列へ
         print("ELDATA2Array")
         XCTAssertEqual(
@@ -306,11 +260,11 @@ final class ELSwiftTests: XCTestCase {
          let tid = try ELSwift.sendString ("::1", "1081030005ff010ef00163018000");
          console.log( "TID:", tid );
          }
-         
+         */
+
          // 機器検索
          print("search")
-         try ELSwift.search ();
-         */
+         try ELSwift.search()
         
         // parse Propaty Map Form 2
         // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること
@@ -345,106 +299,11 @@ final class ELSwiftTests: XCTestCase {
               0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,  // 10
               0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfd, 0xfe, 0xff ] ); // 15
         
-        /*
-         print("parseMapForm2 exception case, null")
-         expect(function() {
-         // empty case
-         try ELSwift.parseMapForm2(  )
-         }).to.throw(Error);
-         
-         // プロパティマップのパースチェック
-         // プロパティ16個より少ない（記述形式1，0x0f個）
-         print("PropertyMap 15 bytes", function (done) {
-         let rinfo = {address: "127.0.0.1"};
-         try ELSwift.returner( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x72, 0x01, 0x9f, 0x0f, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f],
-         rinfo,
-         (rinfo, els) => {
-         XCTAssertEqual(
-         els,
-         { EHD: "1081",
-         TID: "0000",
-         SEOJ: "05ff01",
-         DEOJ: "0ef001",
-         EDATA: "72019f0f8182838485868788898a8b8c8d8e8f",
-         ESV: "72",
-         OPC: "01",
-         DETAIL: "9f0f8182838485868788898a8b8c8d8e8f",
-         DETAILs: { "9f": "8182838485868788898a8b8c8d8e8f" }
-         } );
-         done();
-         } );
-         } );
-         */
-        
-        
-        /*
-         // プロパティ16個以上（記述形式2,0x10個）
-         print("PropertyMap 16 bytes", function (done) {
-         let rinfo = {address: "127.0.0.1"};
-         try ELSwift.returner( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x72, 0x01, 0x9f, 0x11, 0x10, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01],
-         rinfo,
-         (rinfo, els) => {
-         XCTAssertEqual(
-         els,
-         { EHD: "1081",
-         TID: "0000",
-         SEOJ: "05ff01",
-         DEOJ: "0ef001",
-         EDATA: "72019f111001010101010101010101010101010101",
-         ESV: "72",
-         OPC: "01",
-         DETAIL: "9f111001010101010101010101010101010101",
-         DETAILs: { "9f": "10808182838485868788898a8b8c8d8e8f" }
-         } );
-         done();
-         } );
-         } );
-         
-         print("PropertyMap 16 bytes", function (done) {
-         let rinfo = {address: "127.0.0.1"};
-         try ELSwift.returner( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x72, 0x01, 0x9f, 0x11, 0x10, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80],
-         rinfo,
-         (rinfo, els) => {
-         XCTAssertEqual(
-         els,
-         { EHD: "1081",
-         TID: "0000",
-         SEOJ: "05ff01",
-         DEOJ: "0ef001",
-         EDATA: "72019f111001020408102040800102040810204080",
-         ESV: "72",
-         OPC: "01",
-         DETAIL: "9f111001020408102040800102040810204080",
-         DETAILs: { "9f": "1080889199a2aab3bbc4ccd5dde6eef7ff" }
-         } );
-         done();
-         } );
-         } );
-         
-         //
-         print("PropertyMap many properties", function (done) {
-         let rinfo = {address: "127.0.0.1"};
-         try ELSwift.returner( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x72, 0x01, 0x9f, 0x11, 0x36, 0xB1, 0xB1, 0xB1, 0xB1, 0xB0, 0xB0, 0xB1, 0xB3, 0xB3, 0xA1, 0x83, 0x81, 0x01, 0x83, 0x83, 0x83],
-         rinfo,
-         (rinfo, els) => {
-         XCTAssertEqual(
-         els,
-         { EHD: "1081",
-         TID: "0000",
-         SEOJ: "05ff01",
-         DEOJ: "0ef001",
-         EDATA: "72019f1136b1b1b1b1b0b0b1b3b3a1838101838383",
-         ESV: "72",
-         OPC: "01",
-         DETAIL: "9f1136b1b1b1b1b0b0b1b3b3a1838101838383",
-         DETAILs: { "9f": "3680818283868788898a8b8c8d8e8f97989a9d9e9fc0c1c2c3c4c5c6c7c8d0d1d2d3d4d5d6d7d8d9f0f1f2f3f4f5f6f7f8f9fafbfdfeff" }
-         } );
-         done();
-         } );
-         } );
-         */
+        print("-- printFacilities")
+        try ELSwift.printFacilities()
         
         // 終了
+        print("-- release")
         ELSwift.release()
     }
 }

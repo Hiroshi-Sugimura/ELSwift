@@ -47,6 +47,7 @@ public struct EL_STRUCTURE : Equatable{
 }
 
 
+
 //==============================================================================
 enum ELError: Error {
     case BadNetwork
@@ -86,8 +87,7 @@ public class ELSwift {
     public static let MULTI_IP: String = "224.0.23.0"
     public static let MultiIP:String = "224.0.23.0"
     
-    public var facilities:Dictionary<String, Dictionary<String, Dictionary<String,String?>? >? > = Dictionary<String, Dictionary<String, Dictionary<String, String?>? >? >()
-    
+    public static var facilities: Dictionary<String, Dictionary<String, Dictionary<UInt8, [UInt8]?>?>? > = Dictionary<String, Dictionary<String, Dictionary<UInt8, [UInt8]?>? >? >()
     
     // user settings
     static var callbackFunc : ((_ rinfo: (address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
@@ -270,6 +270,26 @@ public class ELSwift {
                 print("receiveMessage data nil")
             }
         })
+    }
+    
+    //---------------------------------------
+    // 表示系
+    public static func printFacilities() throws -> Void {
+        for (ip, objs) in ELSwift.facilities {
+            print("ip: \(ip)")
+
+            if let os = objs {
+                for (eoj, obj) in os {
+                    print("  eoj: \(eoj)")
+                    
+                    if let o = obj {
+                        for (epc, edt) in o {
+                            print("    \(epc) = \(String(describing: edt))")
+                        }
+                    }
+                }
+            }
+        }
     }
     
     
