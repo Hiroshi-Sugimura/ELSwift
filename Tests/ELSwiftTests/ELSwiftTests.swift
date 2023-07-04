@@ -28,7 +28,7 @@ final class ELSwiftTests: XCTestCase {
                  }
                  }
                  */
-            }, 4)
+            })
             exp.fulfill()
         }catch{
             print("setUp error")

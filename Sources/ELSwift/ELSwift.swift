@@ -5,7 +5,9 @@ import Foundation
 import Network
 
 //==============================================================================
-public typealias T_DETAILs = Dictionary<UInt8, [UInt8]?>
+public typealias T_PDCEDT = [UInt8]
+public typealias T_DETAILs = Dictionary<UInt8, T_PDCEDT>
+
 
 //==============================================================================
 public struct EL_STRUCTURE : Equatable{
@@ -90,7 +92,7 @@ public class ELSwift {
     public static let NODE_PROFILE: [UInt8] = [0x0e, 0xf0]
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
     
-    public static var facilities: Dictionary<String, Dictionary<String, T_DETAILs?>? > = Dictionary<String, Dictionary<String, T_DETAILs? >? >()
+    public static var facilities: Dictionary<String, Dictionary<String, T_DETAILs>? > = Dictionary<String, Dictionary<String, T_DETAILs>? >()
     
     // user settings
     static var userFunc : ((_ rinfo: (address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
@@ -98,7 +100,7 @@ public class ELSwift {
     static var EL_obj: [String]!
     static var EL_cls: [String]!
     
-    public static var Node_details: Dictionary<UInt8, [UInt8]>!  = [UInt8: [UInt8]]()
+    public static var Node_details: Dictionary<UInt8, T_PDCEDT> = [UInt8: T_PDCEDT]()
     
     public static var autoGetProperties: Bool = true
     public static var autoGetDelay : Int = 1000
@@ -912,10 +914,10 @@ public class ELSwift {
                     if( Array(els.SEOJ[0..<4]) == ELSwift.NODE_PROFILE && els.DETAILs[0xd6] != nil && els.DETAILs[0xd6] != [] ) {
                         // console.log( "EL.returner: get object list! PropertyMap req V1.0.")
                         // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
-                        let array = els.DETAILs[0xd6]
-                        let instNum = array[0]
+                        let array:T_PDCEDT = els.DETAILs[0xd6]
+                        var instNum:UInt8 = array[0]
                         while( 0 < instNum ) {
-                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host, array[( (instNum - 1)*3 +1 ..< (instNum - 1)*3 +4 ]
+                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host as String, array[ (instNum - 1)*3 + 1 ..< (instNum - 1)*3 + 4 ] )
                             instNum -= 1
                         }
                     }
@@ -923,10 +925,10 @@ public class ELSwift {
                     if( els.DETAILs[0x9f] ) {  // 自動プロパティ取得は初期化フラグ, 9fはGetProps. 基本的に9fは9d, 9eの和集合になる。(そのような決まりはないが)
                         // DETAILsは解析後なので，format 1も2も関係なく処理する
                         // EPC取れるだけ一気にとる方式に切り替えた(ver.2.12.0以降)
-                        let array =  els.DETAILs[0x9f].match(/.{2}/g)
-                        let details = {}
-                        let num = ELSwift.toHexArray( array[0] )[0]
-                                for i in 0 ... num - 1 {
+                        let array:T_PDCEDT =  els.DETAILs[0x9f]
+                        var details = []
+                        let num = array[0]
+                        for i in 0 ... num - 1 {
                             // d6, 9d, 9e, 9fはサーチの時点で取得しているはず
                             // 特にd6と9fは取り直すと無限ループするので注意
                             if( array[i+1] != [0xd6] && array[i+1] != [0x9d] && array[i+1] != [0x9e] && array[i+1] != [0x9f] ) {
@@ -949,7 +951,7 @@ public class ELSwift {
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
-                                ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host as String, ELSwift.NODE_PROFILE_OBJECT )
+                        ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
                     }
                     break
                     
@@ -959,13 +961,13 @@ public class ELSwift {
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5]  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
-                                ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
+                        ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
                         
                         // console.log( "EL.returner: get object list! PropertyMap req.")
-                        let array = els.DETAILs[0xd5]
-                        let instNum = array[0]
+                        let array:T_PDCEDT = els.DETAILs[0xd5]
+                        var instNum:UInt8 = array[0]
                         while( 0 < instNum ) {
-                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint, array[ (instNum - 1) * 3 + 1 ..< (instNum - 1) * 3 + 4 ) ]
+                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, array[ (instNum - 1) * 3 + 1 ..< (instNum - 1) * 3 + 4  ] )
                             instNum -= 1
                         }
                     }
