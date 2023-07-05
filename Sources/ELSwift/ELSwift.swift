@@ -30,6 +30,7 @@ public struct EL_STRUCTURE : Equatable{
         ESV = 0x00
         OPC = 0x00
         DETAIL = [0x00]
+        DETAILs = T_DETAILs()
     }
     
     init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
@@ -45,6 +46,7 @@ public struct EL_STRUCTURE : Equatable{
             DETAILs = try ELSwift.parseDetail(opc, detail)
         }catch{
             print("error")
+            DETAILs = T_DETAILs()
         }
     }
 }
@@ -323,10 +325,8 @@ public class ELSwift {
                 for (eoj, obj) in os {
                     print("  eoj: \(eoj)")
                     
-                    if let o = obj {
-                        for (epc, edt) in o {
-                            print("    \(epc) = \(String(describing: edt))")
-                        }
+                    for (epc, edt) in obj {
+                        print("    \(epc) = \(String(describing: edt))")
                     }
                 }
             }
@@ -438,14 +438,13 @@ public class ELSwift {
         var detail:[UInt8] = []
         
         // detailsがArrayのときはEPCの出現順序に意味がある場合なので、順番を崩さないようにせよ
-        for( epc, e ) in DETAILs {
+        for( epc, pdcedt ) in DETAILs {
             // edtがあればそのまま使う、nilなら[0x00]をいれておく
-            let edt = e ?? [0x00]
-
-            if( edt == [0x00] ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
+            if( pdcedt[0] == 0x00 ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
                 detail += [epc] + [0x00];
             }else{
-                pdc = UInt8(edt.count);  // Byte数
+                pdc = pdcedt[0];  // 0番がpdc
+                let edt:[UInt8] = Array( pdcedt[1...] )
                 detail += [epc] + [pdc] + edt;
             }
             opc += 1;
@@ -551,7 +550,6 @@ public class ELSwift {
         }
         
     }
-    
     
     
     //------------ reply
@@ -801,11 +799,10 @@ public class ELSwift {
         
         // 無視しない
         //        let els;
-        
         do {
-            var els:EL_STRUCTURE = try ELSwift.parseData( content! )
             // キチンとパースできた
-            
+            var els:EL_STRUCTURE = try ELSwift.parseData( content! )
+
             // ヘッダ確認
             if (els.EHD != [0x10, 0x81]) {
                 return
@@ -883,9 +880,9 @@ public class ELSwift {
                     // autoGetPropertiesがfalseなら自動取得しない
                     // epc一気に取得する方法に切り替えた(ver.2.12.0以降)
                     if(  ELSwift.autoGetProperties ) {
-                        var details : T_DETAILs
-                        for( epc, val ) in els.DETAILs {
-                            details[epc] = []
+                        var details: T_DETAILs = T_DETAILs()
+                        for( epc, _ ) in els.DETAILs {
+                            details[epc] = [0x00]
                         }
                         // console.log('EL.SET_RES: autoGetProperties')
                         /*
@@ -911,27 +908,31 @@ public class ELSwift {
                     // V1.1
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
-                    if( Array(els.SEOJ[0..<4]) == ELSwift.NODE_PROFILE && els.DETAILs[0xd6] != nil && els.DETAILs[0xd6] != [] ) {
-                        // console.log( "EL.returner: get object list! PropertyMap req V1.0.")
-                        // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
-                        let array:T_PDCEDT = els.DETAILs[0xd6]
-                        var instNum:UInt8 = array[0]
-                        while( 0 < instNum ) {
-                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host as String, array[ (instNum - 1)*3 + 1 ..< (instNum - 1)*3 + 4 ] )
-                            instNum -= 1
+                    if (Array(els.SEOJ[0..<4]) == ELSwift.NODE_PROFILE)  {
+                        if let array:T_PDCEDT = els.DETAILs[0xd6] {
+                            // console.log( "EL.returner: get object list! PropertyMap req V1.0.")
+                            // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
+                            var instNum:Int = Int( array[0] ) // 0番目はPDC, indexに使うのでIntにする
+                            while( 0 < instNum ) {
+                                let begin:Int =  ( instNum - 1) * 3 + 1
+                                let end:Int = ( instNum - 1) * 3 + 4
+                                let obj:[UInt8] = Array( array[  begin ..< end  ] )
+                                // ELSwift.getPropertyMaps( rinfo.remoteEndpoint?.Host as String, obj )
+                                print("-> ELSwift.GET_SNA, GET_RES", rinfo, obj)
+                                instNum -= 1
+                            }
                         }
                     }
                     
-                    if( els.DETAILs[0x9f] ) {  // 自動プロパティ取得は初期化フラグ, 9fはGetProps. 基本的に9fは9d, 9eの和集合になる。(そのような決まりはないが)
+                    if let array:T_PDCEDT = els.DETAILs[0x9f]  {  // 自動プロパティ取得は初期化フラグ, 9fはGetProps. 基本的に9fは9d, 9eの和集合になる。(そのような決まりはないが)
                         // DETAILsは解析後なので，format 1も2も関係なく処理する
                         // EPC取れるだけ一気にとる方式に切り替えた(ver.2.12.0以降)
-                        let array:T_PDCEDT =  els.DETAILs[0x9f]
-                        var details = []
-                        let num = array[0]
+                        var details:T_DETAILs = [:]
+                        let num:Int = Int( array[0] )
                         for i in 0 ... num - 1 {
                             // d6, 9d, 9e, 9fはサーチの時点で取得しているはず
                             // 特にd6と9fは取り直すと無限ループするので注意
-                            if( array[i+1] != [0xd6] && array[i+1] != [0x9d] && array[i+1] != [0x9e] && array[i+1] != [0x9f] ) {
+                            if( array[i+1] != 0xd6 && array[i+1] != 0x9d && array[i+1] != 0x9e && array[i+1] != 0x9f ) {
                                 details[ array[i+1] ] = []
                             }
                         }
@@ -951,7 +952,8 @@ public class ELSwift {
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
-                        ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
+                        // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
+                        print("-> ELSwift.INF", rinfo, ELSwift.NODE_PROFILE_OBJECT)
                     }
                     break
                     
@@ -959,16 +961,23 @@ public class ELSwift {
                     // ECHONET Lite Ver. 1.0以前の処理で利用していたフロー
                     // オブジェクトリストをもらったらそのオブジェクトのPropertyMapをもらいに行く
                     // autoGetPropertiesがfalseならやらない
-                    if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5]  && ELSwift.autoGetProperties) {
-                        // ノードプロファイルオブジェクトのプロパティマップをもらう
-                        ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
-                        
-                        // console.log( "EL.returner: get object list! PropertyMap req.")
-                        let array:T_PDCEDT = els.DETAILs[0xd5]
-                        var instNum:UInt8 = array[0]
-                        while( 0 < instNum ) {
-                            ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, array[ (instNum - 1) * 3 + 1 ..< (instNum - 1) * 3 + 4  ] )
-                            instNum -= 1
+                    if(ELSwift.autoGetProperties ) {
+                        if let array:T_PDCEDT = els.DETAILs[0xd5] {
+                            // ノードプロファイルオブジェクトのプロパティマップをもらう
+                            // ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
+                            print("-> ELSwift.INFC", rinfo, ELSwift.NODE_PROFILE_OBJECT)
+
+                            // console.log( "EL.returner: get object list! PropertyMap req.")
+                            var instNum:Int = Int( array[0] )
+                            while( 0 < instNum ) {
+                                let begin:Int = (instNum - 1) * 3 + 1
+                                let end:Int = (instNum - 1) * 3 + 4
+                                let obj:[UInt8] = Array( array[  begin ..< end  ] )
+                                // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, obj )
+                                print("-> ELSwift.INF", rinfo, obj)
+
+                                instNum -= 1
+                            }
                         }
                     }
                     break
@@ -985,42 +994,46 @@ public class ELSwift {
             
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
-                ELSwift.renewFacilities(rinfo.remoteEndpoint, els)
+                print("-> ELSwift.INF", rinfo, els)
+                // ELSwift.renewFacilities(rinfo.remoteEndpoint?, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
-            ELSwift.userFunc(rinfo, els)
+            print("-> ELSwift.userFunc", rinfo, els)
+            // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els)
         } catch {
-            ELSwift.userFunc(rinfo, els, error)
+            print("-> ELSwift.userFunc", rinfo, content!, error)
+            // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els, error)
         }
     }
     
     // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
-    public static func renewFacilities( address:String, els:EL_STRUCTURE) throws -> Void{
-        var epcList:T_DETAILs
+    public static func renewFacilities( address:String, els:EL_STRUCTURE) throws -> Void {
         do {
-            epcList = try ELSwift.parseDetail(els.OPC, els.DETAIL);
+            let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.DETAIL);
+            let seoj = try ELSwift.bytesToString( els.SEOJ )
 
             // 新規IP
-            if (ELSwift.facilities[address] == nil) { //見つからない
-                ELSwift.facilities[address] = [:];
+            if ( ELSwift.facilities[address] == nil ) { //見つからない
+                // ELSwift.facilities[address] = [String: [String: [UInt8: [UInt8]]]]();
+                ELSwift.facilities[address] = Dictionary<String, T_DETAILs>()
             }
 
             // 新規obj
-            if (ELSwift.facilities[address][els.SEOJ] == nil) {
-                ELSwift.facilities[address][els.SEOJ] = [:];
+            if (ELSwift.facilities[address]??[seoj] == nil) {
+                ELSwift.facilities[address]??[seoj] = T_DETAILs();
                 // 新規オブジェクトのとき，プロパティリストもらうと取りきるまでループしちゃうのでやめた
             }
 
-            for ( epc, val ) in epcList {
+            for ( epc, pdcedt ) in epcList {
                 // 新規epc
-                if (ELSwift.facilities[address][els.SEOJ][epc] == nil) {
-                    ELSwift.facilities[address][els.SEOJ][epc] = [:];
+                if (ELSwift.facilities[address]??[seoj]?[epc] == nil) {
+                    ELSwift.facilities[address]??[seoj]?[epc] = [UInt8]();
                 }
 
                 // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避ける
-                if val != []  {
-                    ELSwift.facilities[address][els.SEOJ][epc] = val;
+                if pdcedt != []  {
+                    ELSwift.facilities[address]??[seoj]?[epc] = pdcedt;
                 }
 
                 // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
@@ -1036,7 +1049,6 @@ public class ELSwift {
             throw error;
         }
     }
-
     
     
 }
