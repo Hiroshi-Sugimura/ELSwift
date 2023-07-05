@@ -173,9 +173,15 @@ public class ELSwift {
                 //let message = String(data: content, encoding: .utf8)
                 //let message = Data(content, encoding: .utf8)
                 print("-> message from: \(message.remoteEndpoint!)")
+                if let ipa = message.remoteEndpoint {
+                    print("-> message from (ipa): \(ipa)")
+                }else{
+                    print("-> message doesn't convert to ipa")
+                }
                 print("-> content: \([UInt8](content!))" )
                 //let sendContent = Data("ack".utf8)
                 //message.reply(content: sendContent)
+
                 ELSwift.returner( message, content )
             }
             
