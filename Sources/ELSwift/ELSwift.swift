@@ -174,15 +174,15 @@ public class ELSwift {
                 //let message = Data(content, encoding: .utf8)
                 print("-> message from: \(message.remoteEndpoint!)")
                 if let ipa = message.remoteEndpoint {
-                    print("-> message from (ipa): \(ipa)")
+                    let ip_port = ipa.debugDescription.components(separatedBy: ",")
+                    print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])")
+                    ELSwift.returner( ip_port[0], content )
                 }else{
                     print("-> message doesn't convert to ipa")
                 }
                 print("-> content: \([UInt8](content!))" )
                 //let sendContent = Data("ack".utf8)
                 //message.reply(content: sendContent)
-
-                ELSwift.returner( message, content )
             }
             
             ELSwift.group.stateUpdateHandler = { (newState) in
@@ -798,7 +798,7 @@ public class ELSwift {
     // EL受信
     //////////////////////////////////////////////////////////////////////
     // ELの受信データを振り分ける
-    public static func returner(_ rinfo: NWConnectionGroup.Message, _ content: Data? ) {
+    public static func returner(_ rAddress: String, _ content: Data? ) {
         // 自IPを無視する設定があればチェックして無視する
         // 無視しないならチェックもしない
         //        if( EL.ignoreMe ? EL.myIPaddress(rinfo) : false ) {
@@ -926,7 +926,7 @@ public class ELSwift {
                                 let end:Int = ( instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 // ELSwift.getPropertyMaps( rinfo.remoteEndpoint?.Host as String, obj )
-                                print("-> ELSwift.GET_SNA, GET_RES", rinfo, obj)
+                                print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj)
                                 instNum -= 1
                             }
                         }
@@ -961,7 +961,7 @@ public class ELSwift {
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
                         // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
-                        print("-> ELSwift.INF", rinfo, ELSwift.NODE_PROFILE_OBJECT)
+                        print("-> ELSwift.INF", rAddress, ELSwift.NODE_PROFILE_OBJECT)
                     }
                     break
                     
@@ -973,7 +973,7 @@ public class ELSwift {
                         if let array:T_PDCEDT = els.DETAILs[0xd5] {
                             // ノードプロファイルオブジェクトのプロパティマップをもらう
                             // ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
-                            print("-> ELSwift.INFC", rinfo, ELSwift.NODE_PROFILE_OBJECT)
+                            print("-> ELSwift.INFC", rAddress, ELSwift.NODE_PROFILE_OBJECT)
 
                             // console.log( "EL.returner: get object list! PropertyMap req.")
                             var instNum:Int = Int( array[0] )
@@ -982,7 +982,7 @@ public class ELSwift {
                                 let end:Int = (instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, obj )
-                                print("-> ELSwift.INF", rinfo, obj)
+                                print("-> ELSwift.INF", rAddress, obj)
 
                                 instNum -= 1
                             }
@@ -1002,15 +1002,15 @@ public class ELSwift {
             
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
-                print("-> ELSwift.INF", rinfo, els)
+                print("-> ELSwift.INF", rAddress, els)
                 // ELSwift.renewFacilities(rinfo.remoteEndpoint?, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
-            print("-> ELSwift.userFunc", rinfo, els)
+            print("-> ELSwift.userFunc", rAddress, els)
             // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els)
         } catch {
-            print("-> ELSwift.userFunc", rinfo, content!, error)
+            print("-> ELSwift.userFunc", rAddress, content!, error)
             // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els, error)
         }
     }
