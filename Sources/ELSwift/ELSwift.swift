@@ -97,7 +97,7 @@ public class ELSwift {
     public static var facilities: Dictionary<String, Dictionary<String, T_DETAILs>? > = Dictionary<String, Dictionary<String, T_DETAILs>? >()
     
     // user settings
-    static var userFunc : ((_ rinfo: (address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
+    static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
     
     static var EL_obj: [String]!
     static var EL_cls: [String]!
@@ -117,7 +117,7 @@ public class ELSwift {
     public static var listening: Bool = true
     static var queue = DispatchQueue.global(qos: .userInitiated)
     
-    public static func initialize(_ objList: [String], _ callback: ((_ rinfo:(address:String, port:UInt16), _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? ) throws -> Void {
+    public static func initialize(_ objList: [String], _ callback: ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? ) throws -> Void {
         do{
             print("init()")
             
@@ -553,10 +553,10 @@ public class ELSwift {
     
     
     //------------ reply
-    public static func replySetDetail( rinfo:NWConnectionGroup.Message, els:EL_STRUCTURE, dev_details:[UInt8] ) {
+    public static func replySetDetail( rAddress:String, els:EL_STRUCTURE, dev_details:[UInt8] ) {
     }
 
-    public static func replyGetDetail( rinfo:NWConnectionGroup.Message, els:EL_STRUCTURE, dev_details:[UInt8] ) {
+    public static func replyGetDetail( rAddress:String, els:EL_STRUCTURE, dev_details:[UInt8] ) {
     }
 
     //////////////////////////////////////////////////////////////////////
