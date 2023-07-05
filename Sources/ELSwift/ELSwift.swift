@@ -561,10 +561,10 @@ public class ELSwift {
     
     
     //------------ reply
-    public static func replySetDetail( rAddress:String, els:EL_STRUCTURE, dev_details:[UInt8] ) {
+    public static func replySetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ obj:Dictionary<String, T_DETAILs> ) {
     }
 
-    public static func replyGetDetail( rAddress:String, els:EL_STRUCTURE, dev_details:[UInt8] ) {
+    public static func replyGetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ obj:Dictionary<String, T_DETAILs> ) {
     }
 
     //////////////////////////////////////////////////////////////////////
@@ -572,50 +572,43 @@ public class ELSwift {
     //////////////////////////////////////////////////////////////////////
     
     // Detailだけをparseする，内部で主に使う
-    public static func parseDetail(_ opc:UInt8,_ detail:[UInt8] ) throws -> T_DETAILs {
+    public static func parseDetail(_ opc:UInt8, _ pdcedt:T_PDCEDT ) throws -> T_DETAILs {
         // print("parseDetail()")
-        var ret: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
+        var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
         
-        do {
-            var now:Int = 0  // 現在のIndex
-            var epc:UInt8 = 0
-            var pdc:UInt8 = 0
-            let array:[UInt8] = detail  // edts
+        var now:Int = 0  // 現在のIndex
+        var epc:UInt8 = 0
+        var pdc:UInt8 = 0
+        
+        print(pdcedt)
+        
+        // OPCループ
+        for _ in (0 ..< opc ) {
+            // EPC（機能）
+            epc = pdcedt[now]
+            now += 1
             
-            print(array)
+            // PDC（EDTのバイト数）
+            pdc = pdcedt[now]
+            now += 1
             
-            // OPCループ
-            for _ in (0 ..< opc ) {
-                // EPC（機能）
-                epc = array[now]
-                now += 1
-                
-                // PDC（EDTのバイト数）
-                pdc = array[now]
-                now += 1
-                
-                var edt:[UInt8] = []  // edtは初期化しておく
-                
-                // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
-                if( pdc == 0 ) {
-                    ret[ epc ] = [0x00] // 本当はnilを入れたい
-                } else {
-                    // PDCループ
-                    for _ in (0..<pdc) {
-                        // 登録
-                        edt += [ array[now] ]
-                        now += 1
-                    }
-                    // print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)")
-                    ret[ epc ] = try ELSwift.toHexArray( ELSwift.bytesToString( edt ) )
+            var edt:[UInt8] = []  // edtは初期化しておく
+            
+            // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
+            if( pdc == 0 ) {
+                ret[ epc ] = [0x00] // 本当はnilを入れたい
+            } else {
+                // PDCループ
+                for _ in ( 0..<pdc ) {
+                    // 登録
+                    edt += [ pdcedt[now] ]
+                    now += 1
                 }
-                
-            }  // opcループ
+                // print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)")
+                ret[ epc ] = edt
+            }
             
-        } catch {
-            print( "ELSwift.parseDetail(): detail error. opc: \(opc), str: \(detail)" )
-            throw error
-        }
+        }  // opcループ
         
         return ret
     }
@@ -857,22 +850,28 @@ public class ELSwift {
                     ////////////////////////////////////////////////////////////////////////////////////
                     // 0x6x
                 case ELSwift.SETI: // "60
-                    // ELSwift.replySetDetail( rinfo, els, { [ELSwift.NODE_PROFILE_OBJECT]: ELSwift.Node_details} )
+                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
+                    obj["0ef001"] = ELSwift.Node_details
+                    ELSwift.replySetDetail( rAddress, els, obj )
                     break;
                     
                 case ELSwift.SETC: // "61"
-                    // ELSwift.replySetDetail( rinfo, els, { [ELSwift.NODE_PROFILE_OBJECT]: ELSwift.Node_details} )
+                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
+                    obj["0ef001"] = ELSwift.Node_details
+                    ELSwift.replySetDetail( rAddress, els, obj )
                     break
                     
                 case ELSwift.GET: // 0x62
                     // console.log( "EL.returner: get prop. of Node profile els:", els)
-                    // ELSwift.replyGetDetail( rinfo, els, { [ELSwift.NODE_PROFILE_OBJECT]: ELSwift.Node_details} )
+                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
+                    obj["0ef001"] = ELSwift.Node_details
+                    ELSwift.replyGetDetail( rAddress, els, obj )
                     break
                     
                 case ELSwift.INF_REQ: // 0x63
                     if ( els.DETAILs[0xd5] == [0x00] ) {  // EL ver. 1.0以前のコントローラからサーチされた場合のレスポンス
                         // console.log( "EL.returner: Ver1.0 INF_REQ.")
-                        // ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.NODE_PROFILE_OBJECT, ELSwift.toHexArray(els.SEOJ), 0x73, 0xd5, ELSwift.Node_details[0xd5])
+                        try ELSwift.sendOPC1Multi(ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.INF, 0xd5, ELSwift.Node_details[0xd5]!)
                     }
                     break
                     
@@ -1003,20 +1002,20 @@ public class ELSwift {
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
                 print("-> ELSwift.INF", rAddress, els)
-                // ELSwift.renewFacilities(rinfo.remoteEndpoint?, els)
+                try ELSwift.renewFacilities(rAddress, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
             print("-> ELSwift.userFunc", rAddress, els)
-            // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els)
+            ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             print("-> ELSwift.userFunc", rAddress, content!, error)
-            // ELSwift.userFunc(rinfo.remoteEndpoint?.Host, els, error)
+            ELSwift.userFunc!(rAddress, nil, error)
         }
     }
     
     // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
-    public static func renewFacilities( address:String, els:EL_STRUCTURE) throws -> Void {
+    public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) throws -> Void {
         do {
             let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.DETAIL);
             let seoj = try ELSwift.bytesToString( els.SEOJ )
