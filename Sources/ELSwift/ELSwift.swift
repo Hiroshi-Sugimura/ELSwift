@@ -318,6 +318,8 @@ public class ELSwift {
     //---------------------------------------
     // 表示系
     public static func printFacilities() throws -> Void {
+        print("==== ELSwift.printFacilities() ====")
+
         for (ip, objs) in ELSwift.facilities {
             print("ip: \(ip)")
             
