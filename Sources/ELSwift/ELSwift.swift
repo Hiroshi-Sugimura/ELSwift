@@ -174,7 +174,7 @@ public class ELSwift {
                 //let message = Data(content, encoding: .utf8)
                 print("-> message from: \(message.remoteEndpoint!)")
                 if let ipa = message.remoteEndpoint {
-                    let ip_port = ipa.debugDescription.components(separatedBy: ",")
+                    let ip_port = ipa.debugDescription.components(separatedBy: ":")
                     print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])")
                     ELSwift.returner( ip_port[0], content )
                 }else{
