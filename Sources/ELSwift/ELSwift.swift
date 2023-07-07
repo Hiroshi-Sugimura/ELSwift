@@ -116,10 +116,15 @@ public class ELSwift {
     static var isReady: Bool = false
     public static var listening: Bool = true
     static var queue = DispatchQueue.global(qos: .userInitiated)
+    static var isDebug: Bool = false
+    static var ipVer: Int = 0 // 0:no spec, 4:ipVer=4, 6:ipVer=6
     
-    public static func initialize(_ objList: [String], _ callback: ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? ) throws -> Void {
+    public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             print("init()")
+            
+            isDebug = option?.debug ?? false
+            ipVer = option?.ipVer ?? 0
             
             //--- Listener
             /*
@@ -325,35 +330,35 @@ public class ELSwift {
     // 表示系
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
     public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
-        let p = array.map{ String( $0, radix:16)}
+        let p = array.map{ String( format: "%02X", $0) }
         print( p )
     }
 
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
-        let pdc = String( pdcedt[0], radix:16 )
-        let edt = pdcedt[1...].map{ String( $0, radix:16) }
+        let pdc = String( format: "%02X", pdcedt[0] )
+        let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
         print( "PDC:\(pdc), EDT:\(edt)" )
     }
 
     public static func printDetails(_ details:T_DETAILs) throws -> Void {
         for( epc, edt ) in details {
-            let pdc = String( edt.count, radix:16)
-            let edt = edt.map{ String( $0, radix:16)}
-            let _epc = String( epc, radix:16 )
+            let pdc = String( format: "%02X", edt.count )
+            let edt = edt.map{ String( format: "%02X", $0)}
+            let _epc = String( format: "%02X", epc)
             print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
         }
     }
     
     public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) throws -> Void {
-        let seoj = els.SEOJ.map{ String( $0, radix:16)}
-        let deoj = els.DEOJ.map{ String( $0, radix:16)}
-        let esv = String( els.ESV, radix:16)
-        let opc = String( els.OPC, radix:16)
+        let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
+        let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
+        let esv = String( format: "%02X", els.ESV)
+        let opc = String( format: "%02X", els.OPC)
         print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)")
         for( epc, edt ) in els.DETAILs {
-            let pdc = String( edt.count, radix:16)
-            let edt = edt.map{ String( $0, radix:16)}
-            let _epc = String( epc, radix:16 )
+            let pdc = String( format: "%02X", edt.count)
+            let edt = edt.map{ String( format: "%02X", $0 )}
+            let _epc = String( format: "%02X", epc )
             print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
         }
     }
