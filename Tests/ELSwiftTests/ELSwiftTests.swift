@@ -12,7 +12,7 @@ final class ELSwiftTests: XCTestCase {
         let exp = expectation(description: "EL initialize")
         
         do{
-            try ELSwift.initialize(objectList, { rinfo, els, err in
+            try ELSwift.initialize(objectList, { (_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) in
                 if let error = err {
                     print (error)
                     return
@@ -53,6 +53,8 @@ final class ELSwiftTests: XCTestCase {
         //////////////////////////////////////////////////////////////////////
         // 変換
         //////////////////////////////////////////////////////////////////////
+        print("--- converter ---")
+
         // Detail
         print("-- parseDetail, OPC=1")
         var a: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
@@ -209,6 +211,7 @@ final class ELSwiftTests: XCTestCase {
         //////////////////////////////////////////////////////////////////////
         // send
         //////////////////////////////////////////////////////////////////////
+        print("--- send ---")
         /*
          // EL送信のベース
          print("sendBase")
@@ -266,6 +269,11 @@ final class ELSwiftTests: XCTestCase {
          print("search")
          try ELSwift.search()
         
+        //////////////////////////////////////////////////////////////////////
+        // パーサー
+        //////////////////////////////////////////////////////////////////////
+        print("--- perser ---")
+
         // parse Propaty Map Form 2
         // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること
         print("-- parseMapForm2 (16 props)")
@@ -299,9 +307,31 @@ final class ELSwiftTests: XCTestCase {
               0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9,  // 10
               0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa, 0xfb, 0xfd, 0xfe, 0xff ] ); // 15
         
+        //////////////////////////////////////////////////////////////////////
+        // 表示
+        //////////////////////////////////////////////////////////////////////
+        print("--- show ---")
+
+        print("-- printUInt8Array")
+        try ELSwift.printUInt8Array( [0x01, 0x02, 0x03, 0x10, 0x11, 0xa0, 0xf1, 0xf2] )
+        
+        print("-- printPDCEDT")
+        try ELSwift.printPDCEDT( [0x02, 0xaa, 0xbb] )
+        
+        print("-- printDetails")
+        try ELSwift.printDetails( d )
+        
+        print("-- printEL_STRUCTURE")
+        try ELSwift.printEL_STRUCTURE( f )
+
         print("-- printFacilities")
         try ELSwift.printFacilities()
+
         
+        
+        //////////////////////////////////////////////////////////////////////
+        // 終了
+        //////////////////////////////////////////////////////////////////////
         // 終了
         print("-- release")
         ELSwift.release()

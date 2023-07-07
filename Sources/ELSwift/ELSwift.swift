@@ -323,6 +323,41 @@ public class ELSwift {
     
     //---------------------------------------
     // 表示系
+    // let detail = elsv.DETAIL.map{ String($0, radix:16) }
+    public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
+        let p = array.map{ String( $0, radix:16)}
+        print( p )
+    }
+
+    public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
+        let pdc = String( pdcedt[0], radix:16 )
+        let edt = pdcedt[1...].map{ String( $0, radix:16) }
+        print( "PDC:\(pdc), EDT:\(edt)" )
+    }
+
+    public static func printDetails(_ details:T_DETAILs) throws -> Void {
+        for( epc, edt ) in details {
+            let pdc = String( edt.count, radix:16)
+            let edt = edt.map{ String( $0, radix:16)}
+            let _epc = String( epc, radix:16 )
+            print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
+        }
+    }
+    
+    public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) throws -> Void {
+        let seoj = els.SEOJ.map{ String( $0, radix:16)}
+        let deoj = els.DEOJ.map{ String( $0, radix:16)}
+        let esv = String( els.ESV, radix:16)
+        let opc = String( els.OPC, radix:16)
+        print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)")
+        for( epc, edt ) in els.DETAILs {
+            let pdc = String( edt.count, radix:16)
+            let edt = edt.map{ String( $0, radix:16)}
+            let _epc = String( epc, radix:16 )
+            print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
+        }
+    }
+    
     public static func printFacilities() throws -> Void {
         print("==== ELSwift.printFacilities() ====")
 
