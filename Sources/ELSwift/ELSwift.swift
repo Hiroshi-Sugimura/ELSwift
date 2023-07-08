@@ -1013,7 +1013,9 @@ public class ELSwift {
                         if let array:T_PDCEDT = els.DETAILs[0xd5] {
                             // ノードプロファイルオブジェクトのプロパティマップをもらう
                             // ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
-                            if( isDebug ) { print("-> ELSwift.INFC", rAddress, ELSwift.NODE_PROFILE_OBJECT) }
+                            if( isDebug ) {
+                                print("-> ELSwift.INFC rAddress:", rAddress, " obj:", ELSwift.NODE_PROFILE_OBJECT )
+                            }
                             
                             // console.log( "EL.returner: get object list! PropertyMap req.")
                             var instNum:Int = Int( array[0] )
@@ -1022,7 +1024,10 @@ public class ELSwift {
                                 let end:Int = (instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, obj )
-                                if( isDebug ) { print("-> ELSwift.INF", rAddress, obj) }
+                                if( isDebug ) {
+                                    print("-> ELSwift.INF rAddress:", rAddress)
+                                    try ELSwift.printUInt8Array(obj)
+                                }
                                 
                                 instNum -= 1
                             }
@@ -1042,7 +1047,10 @@ public class ELSwift {
             
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
-                if( isDebug ) { print("-> ELSwift.INF", rAddress, els) }
+                if( isDebug ) {
+                    print("-> ELSwift.INF rAddress:", rAddress)
+                    try ELSwift.printEL_STRUCTURE(els)
+                }
                 try ELSwift.renewFacilities(rAddress, els)
             }
             
