@@ -45,7 +45,7 @@ public struct EL_STRUCTURE : Equatable{
         do{
             DETAILs = try ELSwift.parseDetail(opc, detail)
         }catch{
-            print("error")
+            print("EL_STRUCTURE.init() error:", error)
             DETAILs = T_DETAILs()
         }
     }
@@ -121,11 +121,10 @@ public class ELSwift {
     
     public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
-            print("init()")
-            
             isDebug = option?.debug ?? false
             ipVer = option?.ipVer ?? 0
             
+            if( isDebug ) { print("ELSwift.init()") }
             //--- Listener
             /*
              let params = NWParameters.udp
@@ -177,50 +176,50 @@ public class ELSwift {
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 //let message = String(data: content, encoding: .utf8)
                 //let message = Data(content, encoding: .utf8)
-                print("-> message from: \(message.remoteEndpoint!)")
+                if( isDebug ) { print("-> message from: \(message.remoteEndpoint!)") }
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                    print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])")
+                    if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
                     ELSwift.returner( ip_port[0], content )
                 }else{
-                    print("-> message doesn't convert to ipa")
+                    if( isDebug ) { print("-> message doesn't convert to ipa") }
                 }
-                print("-> content: \([UInt8](content!))" )
+                if( isDebug ) { print("-> content: \([UInt8](content!))" ) }
                 //let sendContent = Data("ack".utf8)
                 //message.reply(content: sendContent)
             }
             
             ELSwift.group.stateUpdateHandler = { (newState) in
-                print("Group entered state \(String(describing: newState))")
+                if( isDebug ) { print("Group entered state \(String(describing: newState))") }
                 switch newState {
                 case .ready:
-                    print("ready")
+                    if( isDebug ) { print("ready") }
                     var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
                     msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
                     let groupSendContent = Data(msg)  // .data(using: .utf8)
                     
-                    print("send...UDP")
+                    if( isDebug ) { print("send...UDP") }
                     ELSwift.group.send(content: groupSendContent) { (error)  in
-                        print("Send complete with error \(String(describing: error))")
+                        if( isDebug ) { print("Send complete with error \(String(describing: error))") }
                     }
                 case .waiting(let error):
-                    print("waiting")
-                    print(error)
+                    if( isDebug ) { print("waiting") }
+                    if( isDebug ) { print(error) }
                 case .setup:
-                    print("setup")
+                    if( isDebug ) { print("setup") }
                 case .cancelled:
-                    print("cancelled")
+                    if( isDebug ) { print("cancelled") }
                 case .failed:
-                    print("failed")
+                    if( isDebug ) { print("failed") }
                     //case .preparing:
-                    //    print("preparing")
+                    //    if( isDebug ) { print("preparing") }
                 default:
-                    print("default")
+                    if( isDebug ) { print("default") }
                 }
             }
             
             let queue = DispatchQueue(label: "ECHONETNetwork")
-            //print(group.isUnicastDisabled)
+            //if( isDebug ) { print(group.isUnicastDisabled) }
             ELSwift.group.start(queue: queue)
             //group.start(queue: .main)
             
@@ -261,7 +260,7 @@ public class ELSwift {
             
             ELSwift.userFunc = callback
             
-        }catch let error {
+        }catch {
             throw error
         }
         
@@ -269,7 +268,7 @@ public class ELSwift {
     }
     
     public static func release () {
-        print("release")
+        if( isDebug ) { print("release") }
         group.cancel()
     }
     
@@ -311,17 +310,17 @@ public class ELSwift {
     //---------------------------------------
     public static func receive(nWConnection:NWConnection) -> Void {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
-            print("receiveMessage")
+            if( isDebug ) { print("receiveMessage") }
             if let data = data {
                 let receiveData = [UInt8](data)
-                print(receiveData)
-                print(flag)
+                if( isDebug ) { print(receiveData) }
+                if( isDebug ) { print(flag) }
                 if(flag == false) {
                     ELSwift.receive(nWConnection: nWConnection)
                 }
             }
             else {
-                print("receiveMessage data nil")
+                if( isDebug ) { print("receiveMessage data nil") }
             }
         })
     }
@@ -331,21 +330,21 @@ public class ELSwift {
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
     public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
         let p = array.map{ String( format: "%02X", $0) }
-        print( p )
+        if( isDebug ) { print( p ) }
     }
-
+    
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
         let pdc = String( format: "%02X", pdcedt[0] )
         let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
-        print( "PDC:\(pdc), EDT:\(edt)" )
+        if( isDebug ) { print( "PDC:\(pdc), EDT:\(edt)" ) }
     }
-
+    
     public static func printDetails(_ details:T_DETAILs) throws -> Void {
         for( epc, edt ) in details {
             let pdc = String( format: "%02X", edt.count )
             let edt = edt.map{ String( format: "%02X", $0)}
             let _epc = String( format: "%02X", epc)
-            print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
+            if( isDebug ) { print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" ) }
         }
     }
     
@@ -354,37 +353,36 @@ public class ELSwift {
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
         let esv = String( format: "%02X", els.ESV)
         let opc = String( format: "%02X", els.OPC)
-        print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)")
+        if( isDebug ) { print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)") }
         for( epc, edt ) in els.DETAILs {
             let pdc = String( format: "%02X", edt.count)
             let edt = edt.map{ String( format: "%02X", $0 )}
             let _epc = String( format: "%02X", epc )
-            print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
+            if( isDebug ) { print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" ) }
         }
     }
     
     public static func printFacilities() throws -> Void {
-        print("==== ELSwift.printFacilities() ====")
-
+        if( isDebug ) { print("==== ELSwift.if( isDebug ) { printFacilities() ====") }
+        
         for (ip, objs) in ELSwift.facilities {
-            print("ip: \(ip)")
+            if( isDebug ) { print("ip: \(ip)") }
             
             if let os = objs {
                 for (eoj, obj) in os {
-                    print("  eoj: \(eoj)")
+                    if( isDebug ) { print("  eoj: \(eoj)") }
                     
                     for (epc, edt) in obj {
-                        print("    \(epc) = \(String(describing: edt))")
+                        if( isDebug ) { print("    \(epc) = \(String(describing: edt))") }
                     }
                 }
             }
         }
     }
     
-    
     //---------------------------------------
     public static func sendBase(_ toip:String,_ msg: [UInt8]) throws -> Void {
-        print("sendBase(Data) data:\(msg)")
+        if( isDebug ) { print("sendBase(Data) data:\(msg)") }
         
         let queue = DispatchQueue(label:"sendBase")
         let socket = NWConnection( host:NWEndpoint.Host(toip), port:3610, using: .udp)
@@ -392,9 +390,9 @@ public class ELSwift {
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if let error = error {
-                print("sendBase() error: \(error)")
+                if( isDebug ) { print("sendBase() error: \(error)") }
             }else{
-                print("sendBase() 送信完了")
+                if( isDebug ) { print("sendBase() 送信完了") }
                 socket.cancel()  // 送信したらソケット閉じる
             }
         }
@@ -402,13 +400,13 @@ public class ELSwift {
         socket.stateUpdateHandler = { (newState) in
             switch newState {
             case .ready:
-                print("Ready to send")
+                if( isDebug ) { print("Ready to send") }
                 // 送信
                 socket.send(content: msg, completion: completion)
             case .waiting(let error):
-                print("\(#function), \(error)")
+                if( isDebug ) { print("\(#function), \(error)") }
             case .failed(let error):
-                print("\(#function), \(error)")
+                if( isDebug ) { print("\(#function), \(error)") }
             case .setup: break
             case .cancelled: break
             case .preparing: break
@@ -427,13 +425,13 @@ public class ELSwift {
     }
     
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
-        print("sendBase(UInt8)")
+        if( isDebug ) { print("sendBase(UInt8)") }
         // 送信
         try ELSwift.sendBase(toip, Data( array ) )
     }
     
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
-        print("sendString()")
+        if( isDebug ) { print("sendString()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBase( toip, data )
@@ -507,23 +505,23 @@ public class ELSwift {
     
     //------------ multi send
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
-        print("sendBaseMulti(Data)")
+        if( isDebug ) { print("sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
-            print("Send complete with error \(String(describing: error))")
+            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
         }
     }
     
     public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
-        print("sendBaseMulti(UInt8)")
+        if( isDebug ) { print("sendBaseMulti(UInt8)") }
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            print("Send complete with error \(String(describing: error))")
+            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
         }
     }
     
     public static func sendStringMulti(_ message: String) throws -> Void {
-        print("sendStringMulti()")
+        if( isDebug ) { print("sendStringMulti()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBaseMulti( data )
@@ -565,12 +563,12 @@ public class ELSwift {
     }
     
     public static func search() throws -> Void {
-        print("search()")
+        if( isDebug ) { print("search()") }
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            print("Send complete with error \(String(describing: error))")
+            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
         }
     }
     
@@ -579,20 +577,20 @@ public class ELSwift {
         // プロファイルオブジェクトのときはプロパティマップももらうけど，識別番号ももらう
         if( eoj[0] == 0x0e && eoj[1] == 0xf0 ) {
             /*
-            setTimeout(() => {
-                ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''});
-                ELSwift.decreaseWaitings();
-            }, ELSwift.autoGetDelay * (EL.autoGetWaitings+1));
+             setTimeout(() => {
+             ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''});
+             ELSwift.decreaseWaitings();
+             }, ELSwift.autoGetDelay * (EL.autoGetWaitings+1));
              */
             ELSwift.increaseWaitings();
             
         }else{
             // デバイスオブジェクト
             /*
-            setTimeout(() => {
-                ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'9d':'', '9e':'', '9f':''});
-                ELSwift.decreaseWaitings();
-            }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1));
+             setTimeout(() => {
+             ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'9d':'', '9e':'', '9f':''});
+             ELSwift.decreaseWaitings();
+             }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1));
              */
             ELSwift.increaseWaitings();
         }
@@ -603,24 +601,24 @@ public class ELSwift {
     //------------ reply
     public static func replySetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ obj:Dictionary<String, T_DETAILs> ) {
     }
-
+    
     public static func replyGetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ obj:Dictionary<String, T_DETAILs> ) {
     }
-
+    
     //////////////////////////////////////////////////////////////////////
     // 変換系
     //////////////////////////////////////////////////////////////////////
     
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ pdcedt:T_PDCEDT ) throws -> T_DETAILs {
-        // print("parseDetail()")
+        // if( isDebug ) { print("parseDetail()")
         var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
         
         var now:Int = 0  // 現在のIndex
         var epc:UInt8 = 0
         var pdc:UInt8 = 0
         
-        print(pdcedt)
+        if( isDebug ) { print(pdcedt) }
         
         // OPCループ
         for _ in (0 ..< opc ) {
@@ -644,7 +642,7 @@ public class ELSwift {
                     edt += [ pdcedt[now] ]
                     now += 1
                 }
-                // print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)")
+                // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
                 ret[ epc ] = edt
             }
             
@@ -667,8 +665,8 @@ public class ELSwift {
         do{
             // 最低限のELパケットになってない
             if( bytes.count < 14 ) {
-                print( "ELSwift.parseBytes error. bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
-                print( bytes )
+                if( isDebug ) { print( "ELSwift.parseBytes error. bytes is less then 14 bytes. bytes.count is \(bytes.count)" ) }
+                if( isDebug ) { print( bytes ) }
                 throw ELError.BadReceivedData
             }
             
@@ -843,7 +841,7 @@ public class ELSwift {
         do {
             // キチンとパースできた
             var els:EL_STRUCTURE = try ELSwift.parseData( content! )
-
+            
             // ヘッダ確認
             if (els.EHD != [0x10, 0x81]) {
                 return
@@ -933,10 +931,10 @@ public class ELSwift {
                         }
                         // console.log('EL.SET_RES: autoGetProperties')
                         /*
-                        setTimeout(() => {
-                            ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details )
-                            ELSwift.decreaseWaitings()
-                        }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
+                         setTimeout(() => {
+                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details )
+                         ELSwift.decreaseWaitings()
+                         }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
                          */
                         ELSwift.increaseWaitings()
                     }
@@ -965,7 +963,7 @@ public class ELSwift {
                                 let end:Int = ( instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 // ELSwift.getPropertyMaps( rinfo.remoteEndpoint?.Host as String, obj )
-                                print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj)
+                                if( isDebug ) { print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj) }
                                 instNum -= 1
                             }
                         }
@@ -985,11 +983,11 @@ public class ELSwift {
                         }
                         
                         /*
-                        setTimeout(() => {
-                            ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, EL.GET, details)
-                            ELSwift.decreaseWaitings()
-                        }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
-                        ELSwift.increaseWaitings()
+                         setTimeout(() => {
+                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, EL.GET, details)
+                         ELSwift.decreaseWaitings()
+                         }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
+                         ELSwift.increaseWaitings()
                          */
                     }
                     break
@@ -1000,7 +998,7 @@ public class ELSwift {
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
                         // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
-                        print("-> ELSwift.INF", rAddress, ELSwift.NODE_PROFILE_OBJECT)
+                        if( isDebug ) { print("-> ELSwift.INF", rAddress, ELSwift.NODE_PROFILE_OBJECT) }
                     }
                     break
                     
@@ -1012,8 +1010,8 @@ public class ELSwift {
                         if let array:T_PDCEDT = els.DETAILs[0xd5] {
                             // ノードプロファイルオブジェクトのプロパティマップをもらう
                             // ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
-                            print("-> ELSwift.INFC", rAddress, ELSwift.NODE_PROFILE_OBJECT)
-
+                            if( isDebug ) { print("-> ELSwift.INFC", rAddress, ELSwift.NODE_PROFILE_OBJECT) }
+                            
                             // console.log( "EL.returner: get object list! PropertyMap req.")
                             var instNum:Int = Int( array[0] )
                             while( 0 < instNum ) {
@@ -1021,8 +1019,8 @@ public class ELSwift {
                                 let end:Int = (instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, obj )
-                                print("-> ELSwift.INF", rAddress, obj)
-
+                                if( isDebug ) { print("-> ELSwift.INF", rAddress, obj) }
+                                
                                 instNum -= 1
                             }
                         }
@@ -1041,15 +1039,15 @@ public class ELSwift {
             
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
-                print("-> ELSwift.INF", rAddress, els)
+                if( isDebug ) { print("-> ELSwift.INF", rAddress, els) }
                 try ELSwift.renewFacilities(rAddress, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
-            print("-> ELSwift.userFunc", rAddress, els)
+            if( isDebug ) { print("-> ELSwift.userFunc", rAddress, els) }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
-            print("-> ELSwift.userFunc", rAddress, content!, error)
+            if( isDebug ) { print("-> ELSwift.userFunc", rAddress, content!, error) }
             ELSwift.userFunc!(rAddress, nil, error)
         }
     }
@@ -1059,39 +1057,39 @@ public class ELSwift {
         do {
             let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.DETAIL);
             let seoj = try ELSwift.bytesToString( els.SEOJ )
-
+            
             // 新規IP
             if ( ELSwift.facilities[address] == nil ) { //見つからない
                 // ELSwift.facilities[address] = [String: [String: [UInt8: [UInt8]]]]();
                 ELSwift.facilities[address] = Dictionary<String, T_DETAILs>()
             }
-
+            
             // 新規obj
             if (ELSwift.facilities[address]??[seoj] == nil) {
                 ELSwift.facilities[address]??[seoj] = T_DETAILs();
                 // 新規オブジェクトのとき，プロパティリストもらうと取りきるまでループしちゃうのでやめた
             }
-
+            
             for ( epc, pdcedt ) in epcList {
                 // 新規epc
                 if (ELSwift.facilities[address]??[seoj]?[epc] == nil) {
                     ELSwift.facilities[address]??[seoj]?[epc] = [UInt8]();
                 }
-
+                
                 // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避ける
                 if pdcedt != []  {
                     ELSwift.facilities[address]??[seoj]?[epc] = pdcedt;
                 }
-
+                
                 // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
                 /*
-                if( epc === 0x83 ) {
-                    ELSwift.identificationNumbers.push( {id: epcList[epc], ip: address, OBJ: els.SEOJ } );
-                }
+                 if( epc === 0x83 ) {
+                 ELSwift.identificationNumbers.push( {id: epcList[epc], ip: address, OBJ: els.SEOJ } );
+                 }
                  */
             }
         } catch {
-            print("ELSwift.renewFacilities error.");
+            if( isDebug ) { print("ELSwift.renewFacilities error.") }
             // console.dir(e);
             throw error;
         }
