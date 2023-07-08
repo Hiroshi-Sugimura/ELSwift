@@ -392,8 +392,8 @@ public class ELSwift {
         
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
-            if let error = error {
-                if( isDebug ) { print("sendBase() error: \(error)") }
+            if ( error != nil ) {
+                print("sendBase() error: \(String(describing: error))")
             }else{
                 if( isDebug ) { print("sendBase() 送信完了") }
                 socket.cancel()  // 送信したらソケット閉じる
@@ -472,7 +472,7 @@ public class ELSwift {
             
             // データができたので送信する
             try ELSwift.sendArray( ip, binArray )
-        }catch let error{
+        }catch{
             throw error
         }
     }
@@ -510,7 +510,7 @@ public class ELSwift {
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
         if( isDebug ) { print("ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
-            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
+            print("ELSwift.sendBaseMulti(Data) Send complete with error \(String(describing: error))")
         }
     }
     
@@ -519,7 +519,7 @@ public class ELSwift {
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
+            print("ELSwift.sendBaseMulti([UInt8]) Send complete with error \(String(describing: error))")
         }
     }
     
@@ -571,7 +571,7 @@ public class ELSwift {
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            if( isDebug ) { print("Send complete with error \(String(describing: error))") }
+            print("ELSwift.search() Send complete with error \(String(describing: error))")
         }
     }
     
@@ -668,8 +668,8 @@ public class ELSwift {
         do{
             // 最低限のELパケットになってない
             if( bytes.count < 14 ) {
-                if( isDebug ) { print( "ELSwift.parseBytes error. bytes is less then 14 bytes. bytes.count is \(bytes.count)" ) }
-                if( isDebug ) { print( bytes ) }
+                print( "ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
+                try ELSwift.printUInt8Array( bytes )
                 throw ELError.BadReceivedData
             }
             
@@ -682,7 +682,7 @@ public class ELSwift {
             
             // 文字列にしたので，parseStringで何とかする
             return ( try ELSwift.parseString(str) )
-        }catch let error {
+        } catch {
             throw error
         }
         
@@ -1092,7 +1092,7 @@ public class ELSwift {
                  */
             }
         } catch {
-            if( isDebug ) { print("ELSwift.renewFacilities error.") }
+            print("ELSwift.renewFacilities() error:", error)
             // console.dir(e);
             throw error;
         }
