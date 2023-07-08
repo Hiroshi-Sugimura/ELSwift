@@ -268,7 +268,7 @@ public class ELSwift {
     }
     
     public static func release () {
-        if( isDebug ) { print("release") }
+        if( isDebug ) { print("ELSwift.release()") }
         group.cancel()
     }
     
@@ -363,7 +363,7 @@ public class ELSwift {
     }
     
     public static func printFacilities() throws -> Void {
-        if( isDebug ) { print("==== ELSwift.if( isDebug ) { printFacilities() ====") }
+        if( isDebug ) { print("==== printFacilities() ====") }
         
         for (ip, objs) in ELSwift.facilities {
             if( isDebug ) { print("ip: \(ip)") }
@@ -382,7 +382,10 @@ public class ELSwift {
     
     //---------------------------------------
     public static func sendBase(_ toip:String,_ msg: [UInt8]) throws -> Void {
-        if( isDebug ) { print("sendBase(Data) data:\(msg)") }
+        if( isDebug ) {
+            print("ELSwift.sendBase(Data) data:")
+            try ELSwift.printUInt8Array(msg)
+        }
         
         let queue = DispatchQueue(label:"sendBase")
         let socket = NWConnection( host:NWEndpoint.Host(toip), port:3610, using: .udp)
@@ -425,13 +428,13 @@ public class ELSwift {
     }
     
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
-        if( isDebug ) { print("sendBase(UInt8)") }
+        if( isDebug ) { print("ELSwift.sendBase(UInt8)") }
         // 送信
         try ELSwift.sendBase(toip, Data( array ) )
     }
     
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
-        if( isDebug ) { print("sendString()") }
+        if( isDebug ) { print("ELSwift.sendString()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBase( toip, data )
@@ -505,14 +508,14 @@ public class ELSwift {
     
     //------------ multi send
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
-        if( isDebug ) { print("sendBaseMulti(Data)") }
+        if( isDebug ) { print("ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
             if( isDebug ) { print("Send complete with error \(String(describing: error))") }
         }
     }
     
     public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
-        if( isDebug ) { print("sendBaseMulti(UInt8)") }
+        if( isDebug ) { print("ELSwift.sendBaseMulti(UInt8)") }
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
@@ -521,7 +524,7 @@ public class ELSwift {
     }
     
     public static func sendStringMulti(_ message: String) throws -> Void {
-        if( isDebug ) { print("sendStringMulti()") }
+        if( isDebug ) { print("ELSwift.sendStringMulti()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBaseMulti( data )
@@ -563,7 +566,7 @@ public class ELSwift {
     }
     
     public static func search() throws -> Void {
-        if( isDebug ) { print("search()") }
+        if( isDebug ) { print("ELSwift.search()") }
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
@@ -618,7 +621,7 @@ public class ELSwift {
         var epc:UInt8 = 0
         var pdc:UInt8 = 0
         
-        if( isDebug ) { print(pdcedt) }
+        if( isDebug ) { try ELSwift.printUInt8Array(pdcedt) }
         
         // OPCループ
         for _ in (0 ..< opc ) {
