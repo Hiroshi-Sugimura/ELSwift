@@ -5,8 +5,10 @@ import Foundation
 import Network
 
 //==============================================================================
-public typealias T_PDCEDT = [UInt8]
+public typealias T_PDCEDT  = [UInt8]
 public typealias T_DETAILs = Dictionary<UInt8, T_PDCEDT>
+public typealias T_OBJs    = Dictionary<[UInt8], T_DETAILs>   // [eoj]: T_DETAILs
+public typealias T_DEVs    = Dictionary<String, T_OBJs>   // "ip": T_OBJs
 
 
 //==============================================================================
@@ -583,7 +585,7 @@ public class ELSwift {
              setTimeout(() => {
              ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''});
              ELSwift.decreaseWaitings();
-             }, ELSwift.autoGetDelay * (EL.autoGetWaitings+1));
+             }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1));
              */
             ELSwift.increaseWaitings();
             
@@ -626,71 +628,71 @@ public class ELSwift {
     // dev_detailのGetに対して複数OPCにも対応して返答する
     // rAddress, elsは受信データ, dev_detailsは手持ちデータ
     // 受信したelsを見ながら、手持ちデータを参照してrAddressへ適切に返信する
-    public static func replyGetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details:Dictionary<[UInt8], T_DETAILs> ) {
+    public static func replyGetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details:T_OBJs ) throws {
         var success:Bool = true
-        var retDetails:T_DETAILs = [:]
+        var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
         // console.log( 'Recv DETAILs:', els.DETAILs )
-        for (key, edt) in els.DETAILs {  // key=epc, value=edt
-            if( await ELSwift.replyGetDetail_sub( els, dev_details, key ) ) {
-                retDetails.push( key )
-                retDetails.push( dev_details[els.DEOJ][key].count )
-                retDetails.push( dev_details[els.DEOJ][key] )
+        for ( epc, edt ) in els.DETAILs {  // key=epc, value=edt
+            if( ELSwift.replyGetDetail_sub( els, dev_details, epc ) ) {
+                retDetailsArray.append( epc )
+                retDetailsArray.append( UInt8(edt.count) )
+                retDetailsArray += edt
                 // console.log( 'retDetails:', retDetails )
             }else{
                 // console.log( 'failed:', els.DEOJ, epc )
-                retDetails.push( key )  // epcは文字列なので
-                retDetails.push( [0x00] )
+                retDetailsArray.append( epc )  // epcは文字列なので
+                retDetailsArray.append( 0x00 )
                 success = false
             }
             ret_opc += 1
         }
 
-        var ret_esv = success ? 0x72 : 0x52  // 一つでも失敗したらGET_SNA
-
-        var arr = [0x10, 0x81] + els.TID + els.DEOJ + els.SEOJ + [ret_esv] + [ret_opc] + retDetails
-        ELSwift.sendArray( rAddress, arr )
+        let ret_esv:UInt8 = success ? 0x72 : 0x52  // 一つでも失敗したらGET_SNA
+        let el_base:[UInt8] = [(UInt8)(0x10), (UInt8)(0x81)] + els.TID + els.DEOJ + els.SEOJ
+        let arr:[UInt8] = el_base + [ret_esv] + [ret_opc] + retDetailsArray
+        try ELSwift.sendArray( rAddress, arr )
     }
     
     
     // 上記のサブルーチン
-    //
-    public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:Dictionary<[UInt8], T_DETAILs>, _ epc:UInt8) -> Bool {
-        if( !dev_details[els.DEOJ] ) { // EOJそのものがあるか？
+    public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:T_OBJs, _ epc:UInt8) -> Bool {
+        guard let obj = dev_details[els.DEOJ] else { // EOJそのものがあるか？
             return false
         }
-
+        
         // console.log( dev_details[els.DEOJ], els.DEOJ, epc );
-        if (dev_details[els.DEOJ][epc]) { // EOJは存在し、EPCも持っている
-            return true
-        }else{
-            return false  // EOJはなある、EPCはない
+        if (obj[epc] == nil ) { // EOJは存在し、EPCも持っている
+            return false
         }
-    };
+        return false  // EOJはなある、EPCはない
+    }
 
     // dev_detailのSetに対して複数OPCにも対応して返答する
     // ただしEPC毎の設定値に関して基本はノーチェックなので注意すべし
     // EPC毎の設定値チェックや、INF処理に関しては下記の replySetDetail_sub にて実施
     // SET_RESはEDT入ってない
-    public static func replySetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ obj:Dictionary<[UInt8], T_DETAILs> ) {
+    // dev_detailsはSetされる
+    public static func replySetDetail(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details: inout T_OBJs ) throws {
         
         // DEOJが自分のオブジェクトでない場合は破棄
-        if ( !dev_details[els.DEOJ] ) { // EOJそのものがあるか？
-            return false
+        if dev_details[els.DEOJ] != nil { // EOJそのものがあるか？
+            return
         }
 
         var success:Bool = true
-        var retDetails:T_DETAILs = [:]
+        var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
         // console.log( 'Recv DETAILs:', els.DETAILs )
-        for epc:UInt8 in els.DETAILs {
-            if( await EL.replySetDetail_sub( rinfo, els, dev_details, epc ) ) {
-                retDetails.push( parseInt(epc,16) )  // epcは文字列
-                retDetails.push( [0x00] )  // 処理できた分は0を返す
+        // key=epc, value=pdcedt
+        for (epc, edt) in els.DETAILs {
+            if( try ELSwift.replySetDetail_sub( rAddress, els, &dev_details, epc ) ) {
+                retDetailsArray.append( epc )  // epcは文字列
+                retDetailsArray.append( 0x00 )  // 処理できた分は0を返す
             }else{
-                retDetails.push( parseInt(epc,16) )  // epcは文字列なので
-                retDetails.push( parseInt(els.DETAILs[epc].length/2, 16) )  // 処理できなかった部分は要求と同じ値を返却
-                retDetails.push( parseInt(els.DETAILs[epc], 16) )
+                retDetailsArray.append( epc )  // epcは文字列なので
+                retDetailsArray.append( (UInt8)(edt.count) )  // 処理できなかった部分は要求と同じ値を返却
+                retDetailsArray += edt
                 success = false
             }
             ret_opc += 1
@@ -699,120 +701,128 @@ public class ELSwift {
         if( els.ESV == ELSwift.SETI ) { return }  // SetIなら返却なし
 
         // SetCは SetC_ResかSetC_SNAを返す
-        var ret_esv = success ? 0x71 : 0x5  // 一つでも失敗したらSETC_SNA
-
-        var arr = [0x10, 0x81, ELSwift.toHexArray(els.TID), ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ret_esv, ret_opc, retDetails ];
-        ELSwift.sendArray( rAddress, arr.flat(Infinity) )
+        let ret_esv:UInt8 = success ? 0x71 : 0x5  // 一つでも失敗したらSETC_SNA
+        let el_base:[UInt8] = [(UInt8)(0x10), (UInt8)(0x81)] + els.TID + els.DEOJ + els.SEOJ
+        let arr:[UInt8] = el_base + [ret_esv] + [ret_opc] + retDetailsArray
+        try ELSwift.sendArray( rAddress, arr )
     }
     
     
     // 上記のサブルーチン
-    public static func replySetDetail_sub(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details:Dictionary<[UInt8], T_DETAILs>, _ epc:UInt8) -> Bool{
-        var edt:UInt8 = els.DETAILs[epc];
-
-        switch( els.DEOJ[0...1] ) {
-            case ELSwift.NODE_PROFILE: // ノードプロファイルはsetするものがbfだけ
+    // dev_detailsはSetされる
+    public static func replySetDetail_sub(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details: inout T_OBJs, _ epc:UInt8) throws -> Bool{
+        guard let edt:[UInt8] = els.DETAILs[epc] else {  // setされるべきedtの有無チェック
+            return false
+        }
+        
+        var ret:Bool = false
+       
+        
+        switch( Array(els.DEOJ[0...1]) ) {
+        case ELSwift.NODE_PROFILE: // ノードプロファイルはsetするものがbfだけ
             switch( epc ) {
-                case 0xbf: // 個体識別番号, 最上位1bitは変化させてはいけない。
-                let ea = ELSwift.toHexArray(edt);
-                dev_details[els.DEOJ][epc] = [ ((ea[0] & 0x7F) | (dev_details[els.DEOJ][epc][0] & 0x80)), ea[1] ];
-                return true
+            case 0xbf: // 個体識別番号, 最上位1bitは変化させてはいけない。
+                let ea = edt;
+                dev_details[els.DEOJ]![epc] = [ ((ea[0] & 0x7F) | (dev_details[els.DEOJ]![epc]![0] & 0x80)), ea[1] ]
+                ret = true
                 break
-
-                default
-                return false
+                
+            default:
+                ret = false
                 break
             }
             break
-
-            case [0x01, 0x30]: // エアコン
+            
+        case [0x01, 0x30]: // エアコン
             switch (epc) { // 持ってるEPCのとき
                 // super
-                case 0x80:  // 動作状態, set, get, inf
-                if( edt == 0x30 || edt == 0x31 ) {
-                    dev_details[els.DEOJ][epc] = [parseInt(edt, 16)];
-                    ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ELSwift.INF, ELSwift.toHexArray(epc), [parseInt(edt, 16)] );  // INF
-                    return true
+            case 0x80:  // 動作状態, set, get, inf
+                if( edt == [0x30] || edt == [0x31] ) {
+                    dev_details[els.DEOJ]![epc] = edt
+                    try ELSwift.sendOPC1( ELSwift.EL_Multi, els.DEOJ, els.SEOJ, ELSwift.INF, epc, edt );  // INF
+                    ret = true
                 }else{
-                    return false
+                    ret = false
                 }
                 break
-
-                case 0x81:  // 設置場所, set, get, inf
-                dev_details[els.DEOJ][epc] = [parseInt(edt, 16)];
-                ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ELSwift.INF, ELSwift.toHexArray(epc), [parseInt(edt, 16)] );  // INF
-                return true
+                
+            case 0x81:  // 設置場所, set, get, inf
+                dev_details[els.DEOJ]![epc] = edt;
+                try ELSwift.sendOPC1( ELSwift.EL_Multi, els.DEOJ, els.SEOJ, ELSwift.INF, epc, edt )  // INF
+                ret = true
                 break
-
+                
                 // detail
-                case 0x8f: // 節電動作設定, set, get, inf
-                if( edt == 0x41 || edt == 0x42 ) {
-                    dev_details[els.DEOJ][epc] = [parseInt(edt, 16)];
-                    ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ELSwift.INF, ELSwift.toHexArray(epc), [parseInt(edt, 16)] );  // INF
-                    return true
+            case 0x8f: // 節電動作設定, set, get, inf
+                if( edt == [0x41] || edt == [0x42] ) {
+                    dev_details[els.DEOJ]![epc] = edt
+                    try ELSwift.sendOPC1( ELSwift.EL_Multi, els.DEOJ, els.SEOJ, ELSwift.INF, epc, edt )  // INF
+                    ret = true
                 }else{
-                    return false
+                    ret = false
                 }
                 break
-
-                case 0xb0: // 運転モード設定, set, get, inf
+                
+            case 0xb0: // 運転モード設定, set, get, inf
                 switch( edt ) {
- // 40その他, 41自動, 42冷房, 43暖房, 44除湿, 45送風
-                    case 0x40, 0x41, 0x42, 0x43, 0x44, 0x45: // 送風
-                    dev_details[els.DEOJ][epc] = [parseInt(edt, 16)]
-                    ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ELSwift.INF, ELSwift.toHexArray(epc), [parseInt(edt, 16)] );  // INF
-                    return true;
-                    break;
-
-                    default:
-                    return false;
-                }
-                break;
-
-                case 0xb3: // 温度設定, set, get
-                let temp = parseInt( edt, 16 )
-                if( -1 < temp && temp < 51 ) {
-                    dev_details[els.DEOJ][epc] = [temp]
-                    return true
-                }else{
-                    return false
+                    // 40その他, 41自動, 42冷房, 43暖房, 44除湿, 45送風
+                case [0x40], [0x41], [0x42], [0x43], [0x44], [0x45]: // 送風
+                    dev_details[els.DEOJ]![epc] = edt
+                    try ELSwift.sendOPC1( ELSwift.EL_Multi, els.DEOJ, els.SEOJ, ELSwift.INF, epc, edt )  // INF
+                    ret = true
+                    break
+                    
+                default:
+                    ret = false
                 }
                 break
-
-                case 0xa0: // 風量設定, set, get, inf
+                
+            case 0xb3: // 温度設定, set, get
+                if( 0x00 <= edt[0] && edt[0] <= 0x32 ) {  // 0x00=0, 0x32=50
+                    dev_details[els.DEOJ]![epc] = [edt[0]]
+                    ret = true
+                }else{
+                    ret = false
+                }
+                break
+                
+            case 0xa0: // 風量設定, set, get, inf
                 switch( edt ) {
                     // 0x31..0x38の8段階
                     // 0x41 自動
-                case 0x31,  0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x41:
-                    dev_details[els.DEOJ][epc] = [parseInt(edt, 16)]
-                    ELSwift.sendOPC1( ELSwift.EL_Multi, ELSwift.toHexArray(els.DEOJ), ELSwift.toHexArray(els.SEOJ), ELSwift.INF, ELSwift.toHexArray(epc), [parseInt(edt, 16)] );  // INF
-                    return true
+                case [0x31],  [0x32], [0x33], [0x34], [0x35], [0x36], [0x37], [0x38], [0x41]:
+                    dev_details[els.DEOJ]![epc] = edt
+                    try ELSwift.sendOPC1( ELSwift.EL_Multi, els.DEOJ, els.SEOJ, ELSwift.INF, epc, edt );  // INF
+                    ret = true
                     break
-                    default
+                default:
                     // EDTがおかしい
-                    return false
+                    ret = false
                 }
                 break
-
-                default: // 持っていないEPCやset不可能のとき
-                if (dev_details[els.DEOJ][epc]) { // EOJは存在し、EPCも持っている
-                    return true
+                
+            default: // 持っていないEPCやset不可能のとき
+                if (dev_details[els.DEOJ]![epc] == nil) { // EOJは存在し、EPCも持っている
+                    ret = false  // EOJはなある、EPCはない
                 }else{
-                    return false  // EOJはなある、EPCはない
+                    ret = true
                 }
             }
             break
-
-
-            default:  // 詳細を作っていないオブジェクトの一律処理
-            if (dev_details[els.DEOJ][epc]) { // EOJは存在し、EPCも持っている
-                return true
+            
+            
+        default:  // 詳細を作っていないオブジェクトの一律処理
+            if (dev_details[els.DEOJ]![epc] == nil) { // EOJは存在し、EPCも持っている
+                ret = false  // EOJはなある、EPCはない
             }else{
-                return false  // EOJはなある、EPCはない
+                ret = true
+               
             }
         }
-    }
 
+        return ret
+    }
+    
     
     //////////////////////////////////////////////////////////////////////
     // 変換系
@@ -1041,7 +1051,7 @@ public class ELSwift {
     public static func returner(_ rAddress: String, _ content: Data? ) {
         // 自IPを無視する設定があればチェックして無視する
         // 無視しないならチェックもしない
-        //        if( EL.ignoreMe ? EL.myIPaddress(rinfo) : false ) {
+        //        if( ELSwift.ignoreMe ? ELSwift.myIPaddress(rinfo) : false ) {
         //            return;
         //        }
         
@@ -1077,10 +1087,10 @@ public class ELSwift {
                      if(  ELSwift.autoGetProperties ) {
                      for( let epc in els.DETAILs ) {
                      setTimeout(() => {
-                     ELSwift.sendDetails( rinfo, EL.NODE_PROFILE_OBJECT, els.SEOJ, EL.GET, { [epc]:'' } )
+                     ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, { [epc]:'' } )
                      ELSwift.decreaseWaitings()
-                     }, EL.autoGetDelay * (EL.autoGetWaitings+1))
-                     EL.increaseWaitings()
+                     }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
+                     ELSwift.increaseWaitings()
                      }
                      }
                      */
@@ -1090,34 +1100,34 @@ public class ELSwift {
                     break
                     
                 case ELSwift.SETGET_SNA: // "5e"
-                    // console.log( "EL.returner: get error" )
+                    // console.log( "ELSwift.returner: get error" )
                     // console.dir( els )
                     break
                     
                     ////////////////////////////////////////////////////////////////////////////////////
                     // 0x6x
                 case ELSwift.SETI: // "60
-                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
-                    obj["0ef001"] = ELSwift.Node_details
-                    ELSwift.replySetDetail( rAddress, els, obj )
+                    var obj: T_OBJs = T_OBJs()
+                    obj[ [0x0e, 0xf0, 0x01] ] = ELSwift.Node_details
+                    try ELSwift.replySetDetail( rAddress, els, &obj )
                     break;
                     
                 case ELSwift.SETC: // "61"
-                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
-                    obj["0ef001"] = ELSwift.Node_details
-                    ELSwift.replySetDetail( rAddress, els, obj )
+                    var obj: T_OBJs = T_OBJs()
+                    obj[ [0x0e, 0xf0, 0x01]] = ELSwift.Node_details
+                    try ELSwift.replySetDetail( rAddress, els, &obj )
                     break
                     
                 case ELSwift.GET: // 0x62
-                    // console.log( "EL.returner: get prop. of Node profile els:", els)
-                    var obj: Dictionary<String, T_DETAILs> = Dictionary<String, T_DETAILs>()
-                    obj["0ef001"] = ELSwift.Node_details
-                    ELSwift.replyGetDetail( rAddress, els, obj )
+                    // console.log( "ELSwift.returner: get prop. of Node profile els:", els)
+                    var obj: T_OBJs = T_OBJs()
+                    obj[ [0x0e, 0xf0, 0x01] ] = ELSwift.Node_details
+                    try ELSwift.replyGetDetail( rAddress, els, obj )
                     break
                     
                 case ELSwift.INF_REQ: // 0x63
                     if ( els.DETAILs[0xd5] == [0x00] ) {  // EL ver. 1.0以前のコントローラからサーチされた場合のレスポンス
-                        // console.log( "EL.returner: Ver1.0 INF_REQ.")
+                        // console.log( "ELSwift.returner: Ver1.0 INF_REQ.")
                         try ELSwift.sendOPC1Multi(ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.INF, 0xd5, ELSwift.Node_details[0xd5]!)
                     }
                     break
@@ -1138,7 +1148,7 @@ public class ELSwift {
                         for( epc, _ ) in els.DETAILs {
                             details[epc] = [0x00]
                         }
-                        // console.log('EL.SET_RES: autoGetProperties')
+                        // console.log('ELSwift.SET_RES: autoGetProperties')
                         /*
                          setTimeout(() => {
                          ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details )
@@ -1164,7 +1174,7 @@ public class ELSwift {
                     // なお、d6にはNode profileは入っていない
                     if (Array(els.SEOJ[0..<4]) == ELSwift.NODE_PROFILE)  {
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
-                            // console.log( "EL.returner: get object list! PropertyMap req V1.0.")
+                            // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
                             var instNum:Int = Int( array[0] ) // 0番目はPDC, indexに使うのでIntにする
                             while( 0 < instNum ) {
@@ -1193,7 +1203,7 @@ public class ELSwift {
                         
                         /*
                          setTimeout(() => {
-                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, EL.GET, details)
+                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                          ELSwift.decreaseWaitings()
                          }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
                          ELSwift.increaseWaitings()
@@ -1223,7 +1233,7 @@ public class ELSwift {
                                 print("-> ELSwift.INFC rAddress:", rAddress, " obj:", ELSwift.NODE_PROFILE_OBJECT )
                             }
                             
-                            // console.log( "EL.returner: get object list! PropertyMap req.")
+                            // console.log( "ELSwift.returner: get object list! PropertyMap req.")
                             var instNum:Int = Int( array[0] )
                             while( 0 < instNum ) {
                                 let begin:Int = (instNum - 1) * 3 + 1
