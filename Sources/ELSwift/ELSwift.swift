@@ -53,6 +53,34 @@ public struct EL_STRUCTURE : Equatable{
     }
 }
 
+//==============================================================================
+// timer queue用のOperation class
+class CSendTask: Operation {
+    let address: String
+    let els: EL_STRUCTURE
+    
+    init(_ _address: String, _ _els: EL_STRUCTURE) {
+        self.address = _address
+        self.els = _els
+    }
+    
+    override func main () {
+        if isCancelled {
+            return
+        }
+        
+        // スレッドを2秒止める
+        Thread.sleep(forTimeInterval: 2)
+        
+        do{
+            try ELSwift.sendELS(address, els)
+        }catch{
+            print("CSendTask.main()", els)
+        }
+    }
+}
+
+
 
 //==============================================================================
 enum ELError: Error {
@@ -121,11 +149,21 @@ public class ELSwift {
     static var isDebug: Bool = false
     static var ipVer: Int = 0 // 0:no spec, 4:ipVer=4, 6:ipVer=6
     
+    static let sendQueue = OperationQueue()
+
+    
     public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
             ipVer = option?.ipVer ?? 0
             
+            
+            // send queue
+            sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
+            sendQueue.maxConcurrentOperationCount = 1
+            sendQueue.qualityOfService = .userInitiated
+            
+
             if( isDebug ) { print("ELSwift.init()") }
             //--- Listener
             /*
@@ -508,6 +546,17 @@ public class ELSwift {
     }
     
     
+    // elsを送る、TIDはAuto
+    public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
+        // TIDの調整
+        ELSwift.increaseTID()
+        
+        let buffer:[UInt8] = ELSwift.EHD + ELSwift.tid + els.SEOJ + els.DEOJ + [els.ESV] + [els.OPC] + els.DETAIL
+        
+        // データができたので送信する
+        return try ELSwift.sendBase(ip, buffer);
+    }
+    
     //------------ multi send
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
         if( isDebug ) { print("ELSwift.sendBaseMulti(Data)") }
@@ -577,27 +626,23 @@ public class ELSwift {
         }
     }
     
+    // プロパティマップをすべて取得する
+    // 一度に一気に取得するとデバイス側が対応できないタイミングもあるようで，適当にwaitする。
     public static func getPropertyMaps(_ ip:String,_ eoj:[UInt8] )
     {
         // プロファイルオブジェクトのときはプロパティマップももらうけど，識別番号ももらう
         if( eoj[0] == 0x0e && eoj[1] == 0xf0 ) {
-            /*
-             setTimeout(() => {
-             ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''});
-             ELSwift.decreaseWaitings();
-             }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1));
-             */
-            ELSwift.increaseWaitings();
+            
+            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x04, detail:[0x83, 0x00, 0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
+            
+            sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
+            // ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''})
             
         }else{
             // デバイスオブジェクト
-            /*
-             setTimeout(() => {
-             ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'9d':'', '9e':'', '9f':''});
-             ELSwift.decreaseWaitings();
-             }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1));
-             */
-            ELSwift.increaseWaitings();
+            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, detail:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
+            
+            sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
         }
         
     }
@@ -1094,6 +1139,15 @@ public class ELSwift {
                      }
                      }
                      */
+                    /*
+                     if(  ELSwift.autoGetProperties ) {
+                     for( let epc in els.DETAILs ) {
+                    let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
+                    
+                    sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                     }
+                     }
+                     */
                     break
                     
                 case ELSwift.INF_SNA:    // "53"
@@ -1150,12 +1204,13 @@ public class ELSwift {
                         }
                         // console.log('ELSwift.SET_RES: autoGetProperties')
                         /*
-                         setTimeout(() => {
                          ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details )
-                         ELSwift.decreaseWaitings()
-                         }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
                          */
-                        ELSwift.increaseWaitings()
+                        /*
+                         let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
+                         
+                         sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                         */
                     }
                     break
                     
@@ -1181,7 +1236,7 @@ public class ELSwift {
                                 let begin:Int =  ( instNum - 1) * 3 + 1
                                 let end:Int = ( instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
-                                // ELSwift.getPropertyMaps( rinfo.remoteEndpoint?.Host as String, obj )
+                                ELSwift.getPropertyMaps( rAddress, obj )
                                 if( isDebug ) { print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj) }
                                 instNum -= 1
                             }
@@ -1202,11 +1257,12 @@ public class ELSwift {
                         }
                         
                         /*
-                         setTimeout(() => {
+                         // ??
+                        let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, detail:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
+                        
+                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+
                          ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
-                         ELSwift.decreaseWaitings()
-                         }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
-                         ELSwift.increaseWaitings()
                          */
                     }
                     break
@@ -1216,7 +1272,7 @@ public class ELSwift {
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
-                        // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.IPAddress as String, ELSwift.NODE_PROFILE_OBJECT )
+                        ELSwift.getPropertyMaps( rAddress, ELSwift.NODE_PROFILE_OBJECT )
                         if( isDebug ) { print("-> ELSwift.INF", rAddress, ELSwift.NODE_PROFILE_OBJECT) }
                     }
                     break
@@ -1228,7 +1284,7 @@ public class ELSwift {
                     if(ELSwift.autoGetProperties ) {
                         if let array:T_PDCEDT = els.DETAILs[0xd5] {
                             // ノードプロファイルオブジェクトのプロパティマップをもらう
-                            // ELSwift.getPropertyMaps( rinfo.remoteEndpoint, ELSwift.NODE_PROFILE_OBJECT )
+                            ELSwift.getPropertyMaps( rAddress, ELSwift.NODE_PROFILE_OBJECT )
                             if( isDebug ) {
                                 print("-> ELSwift.INFC rAddress:", rAddress, " obj:", ELSwift.NODE_PROFILE_OBJECT )
                             }
@@ -1239,7 +1295,7 @@ public class ELSwift {
                                 let begin:Int = (instNum - 1) * 3 + 1
                                 let end:Int = (instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
-                                // ELSwift.getPropertyMaps( rinfo.remoteEndpoint.Host.ipv4, obj )
+                                ELSwift.getPropertyMaps( rAddress, obj )
                                 if( isDebug ) {
                                     print("-> ELSwift.INF rAddress:", rAddress)
                                     try ELSwift.printUInt8Array(obj)
@@ -1287,7 +1343,6 @@ public class ELSwift {
             
             // 新規IP
             if ( ELSwift.facilities[address] == nil ) { //見つからない
-                // ELSwift.facilities[address] = [String: [String: [UInt8: [UInt8]]]]();
                 ELSwift.facilities[address] = T_OBJs()
             }
             
