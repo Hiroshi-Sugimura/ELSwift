@@ -35,9 +35,9 @@ public struct EL_STRUCTURE : Equatable{
         DETAILs = T_DETAILs()
     }
     
-    init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
-        EHD = [0x10, 0x81]
-        TID = tid
+    init(tid:[UInt8]?, seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
+        EHD = ELSwift.EHD
+        TID = tid ?? [0x00, 0x00]
         SEOJ = seoj
         DEOJ = deoj
         ESV = esv
@@ -421,10 +421,10 @@ public class ELSwift {
     }
     
     //---------------------------------------
-    public static func sendBase(_ toip:String,_ msg: [UInt8]) throws -> Void {
+    public static func sendBase(_ toip:String, _ array: [UInt8]) throws -> Void {
         if( isDebug ) {
             print("ELSwift.sendBase(Data) data:")
-            try ELSwift.printUInt8Array(msg)
+            try ELSwift.printUInt8Array(array)
         }
         
         let queue = DispatchQueue(label:"sendBase")
@@ -445,7 +445,7 @@ public class ELSwift {
             case .ready:
                 if( isDebug ) { print("Ready to send") }
                 // 送信
-                socket.send(content: msg, completion: completion)
+                socket.send(content: array, completion: completion)
             case .waiting(let error):
                 if( isDebug ) { print("\(#function), \(error)") }
             case .failed(let error):
@@ -470,7 +470,7 @@ public class ELSwift {
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
         if( isDebug ) { print("ELSwift.sendBase(UInt8)") }
         // 送信
-        try ELSwift.sendBase(toip, Data( array ) )
+        try ELSwift.sendBase(toip, array )
     }
     
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
@@ -542,7 +542,7 @@ public class ELSwift {
         buffer = ELSwift.EHD + ELSwift.tid + seoj + deoj + [esv] + [opc] + detail
         
         // データができたので送信する
-        return try ELSwift.sendBase(ip, buffer);
+        try ELSwift.sendBase(ip, buffer);
     }
     
     
@@ -550,11 +550,9 @@ public class ELSwift {
     public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
         // TIDの調整
         ELSwift.increaseTID()
-        
-        let buffer:[UInt8] = ELSwift.EHD + ELSwift.tid + els.SEOJ + els.DEOJ + [els.ESV] + [els.OPC] + els.DETAIL
-        
+
         // データができたので送信する
-        return try ELSwift.sendBase(ip, buffer);
+        try ELSwift.sendDetails(ip, els.SEOJ, els.DEOJ, els.ESV, els.DETAILs);
     }
     
     //------------ multi send
