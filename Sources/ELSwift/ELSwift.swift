@@ -96,7 +96,7 @@ public class ELSwift {
     public static let NODE_PROFILE: [UInt8] = [0x0e, 0xf0]
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
     
-    public static var facilities: Dictionary<String, Dictionary<String, T_DETAILs>? > = Dictionary<String, Dictionary<String, T_DETAILs>? >()
+    public static var facilities: Dictionary<String, T_OBJs? > = Dictionary<String, T_OBJs? >()
     
     // user settings
     static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
@@ -104,7 +104,7 @@ public class ELSwift {
     static var EL_obj: [String]!
     static var EL_cls: [String]!
     
-    public static var Node_details: Dictionary<UInt8, T_PDCEDT> = [UInt8: T_PDCEDT]()
+    public static var Node_details:T_DETAILs = T_DETAILs()
     
     public static var autoGetProperties: Bool = true
     public static var autoGetDelay : Int = 1000
@@ -1283,12 +1283,12 @@ public class ELSwift {
     public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) throws -> Void {
         do {
             let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.DETAIL);
-            let seoj = try ELSwift.bytesToString( els.SEOJ )
+            let seoj = els.SEOJ
             
             // 新規IP
             if ( ELSwift.facilities[address] == nil ) { //見つからない
                 // ELSwift.facilities[address] = [String: [String: [UInt8: [UInt8]]]]();
-                ELSwift.facilities[address] = Dictionary<String, T_DETAILs>()
+                ELSwift.facilities[address] = T_OBJs()
             }
             
             // 新規obj
