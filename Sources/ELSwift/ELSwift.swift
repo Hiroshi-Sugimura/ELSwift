@@ -1,5 +1,8 @@
-//==============================================================================
-// SUGIMURA Hiroshi
+/// ECHONET Lite protocol for Swift
+///
+/// 
+///
+/// SUGIMURA Hiroshi
 //==============================================================================
 import Foundation
 import Network
