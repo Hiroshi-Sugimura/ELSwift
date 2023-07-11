@@ -1225,7 +1225,7 @@ public class ELSwift {
                     // V1.1
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
-                    if ( Array(els.SEOJ[0 ..< 1]) == ELSwift.NODE_PROFILE)  {
+                    if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE)  {
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
                             // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
@@ -1241,27 +1241,27 @@ public class ELSwift {
                         }
                     }
                     
+                    // 9f(GetPropertyMap)を受け取ったら、それらを全プロパティを取得する
                     if let array:T_PDCEDT = els.DETAILs[0x9f]  {  // 自動プロパティ取得は初期化フラグ, 9fはGetProps. 基本的に9fは9d, 9eの和集合になる。(そのような決まりはないが)
                         // DETAILsは解析後なので，format 1も2も関係なく処理する
                         // EPC取れるだけ一気にとる方式に切り替えた(ver.2.12.0以降)
-                        var details:T_DETAILs = [:]
+                        var details:[UInt8] = []
                         let num:Int = Int( array[0] )
-                        for i in 0 ... num - 1 {
-                            // d6, 9d, 9e, 9fはサーチの時点で取得しているはず
+                        var i = 0
+                        while i < num {
+                            // d6, 9d, 9e, 9fはサーチの時点で取得しているはずなので取得しない
                             // 特にd6と9fは取り直すと無限ループするので注意
                             if( array[i+1] != 0xd6 && array[i+1] != 0x9d && array[i+1] != 0x9e && array[i+1] != 0x9f ) {
-                                details[ array[i+1] ] = []
+                                details.append( array[i+1] )
+                                details.append( 0x00 )
                             }
+                            i += 1
                         }
                         
-                        /*
-                         // ??
-                        let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, detail:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
-                        
-                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
 
-                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
-                         */
+                        let els:EL_STRUCTURE = EL_STRUCTURE( tid:nil, seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
+                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                        // try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                     }
                     break
                     
