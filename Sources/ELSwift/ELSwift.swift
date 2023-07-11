@@ -6,7 +6,8 @@ import Network
 import SystemConfiguration
 
 //==============================================================================
-public typealias T_PDCEDT  = [UInt8]
+public typealias T_PDCEDT     = [UInt8]
+public typealias T_EPCPDCEDT  = [UInt8]
 public typealias T_DETAILs = Dictionary<UInt8, T_PDCEDT>
 public typealias T_OBJs    = Dictionary<[UInt8], T_DETAILs>   // [eoj]: T_DETAILs
 public typealias T_DEVs    = Dictionary<String, T_OBJs>   // "ip": T_OBJs
@@ -21,7 +22,7 @@ public struct EL_STRUCTURE : Equatable{
     public var EDATA: [UInt8]    // 下記はEDATAの詳細
     public var ESV : UInt8
     public var OPC : UInt8
-    public var DETAIL: [UInt8]
+    public var EPCPDCEDT : T_EPCPDCEDT
     public var DETAILs : T_DETAILs
     
     init() {
@@ -32,21 +33,21 @@ public struct EL_STRUCTURE : Equatable{
         EDATA = []
         ESV = 0x00
         OPC = 0x00
-        DETAIL = [0x00]
+        EPCPDCEDT = [0x00]
         DETAILs = T_DETAILs()
     }
     
-    init(tid:[UInt8]?, seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, detail:[UInt8]) {
+    init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, epcpdcedt:T_EPCPDCEDT) {
         EHD = ELSwift.EHD
-        TID = tid ?? [0x00, 0x00]
+        TID = tid
         SEOJ = seoj
         DEOJ = deoj
         ESV = esv
         OPC = opc
-        DETAIL = detail
-        EDATA = [esv, opc] + detail
+        EPCPDCEDT = epcpdcedt
+        EDATA = [esv, opc] + epcpdcedt
         do{
-            DETAILs = try ELSwift.parseDetail(opc, detail)
+            DETAILs = try ELSwift.parseDetail(opc, epcpdcedt)
         }catch{
             print("EL_STRUCTURE.init() error:", error)
             DETAILs = T_DETAILs()
@@ -547,22 +548,22 @@ public class ELSwift {
         var buffer:[UInt8] = [];
         var opc:UInt8 = 0;
         var pdc:UInt8 = 0;
-        var detail:[UInt8] = []
+        var epcpdcedt:T_EPCPDCEDT = []
         
         // detailsがArrayのときはEPCの出現順序に意味がある場合なので、順番を崩さないようにせよ
         for( epc, pdcedt ) in DETAILs {
             // edtがあればそのまま使う、nilなら[0x00]をいれておく
             if( pdcedt[0] == 0x00 ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
-                detail += [epc] + [0x00];
+                epcpdcedt += [epc] + [0x00];
             }else{
                 pdc = pdcedt[0];  // 0番がpdc
                 let edt:[UInt8] = Array( pdcedt[1...] )
-                detail += [epc] + [pdc] + edt;
+                epcpdcedt += [epc] + [pdc] + edt
             }
             opc += 1;
         }
         
-        buffer = ELSwift.EHD + ELSwift.tid + seoj + deoj + [esv] + [opc] + detail
+        buffer = ELSwift.EHD + ELSwift.tid + seoj + deoj + [esv] + [opc] + epcpdcedt
         
         // データができたので送信する
         try ELSwift.sendBase(ip, buffer);
@@ -654,14 +655,14 @@ public class ELSwift {
         // プロファイルオブジェクトのときはプロパティマップももらうけど，識別番号ももらう
         if( eoj[0] == 0x0e && eoj[1] == 0xf0 ) {
             
-            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x04, detail:[0x83, 0x00, 0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
+            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x04, epcpdcedt:[0x83, 0x00, 0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
             
             sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
             // ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''})
             
         }else{
             // デバイスオブジェクト
-            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, detail:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
+            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, epcpdcedt:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
             
             sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
         }
@@ -895,7 +896,7 @@ public class ELSwift {
     //////////////////////////////////////////////////////////////////////
     
     // Detailだけをparseする，内部で主に使う
-    public static func parseDetail(_ opc:UInt8, _ pdcedt:T_PDCEDT ) throws -> T_DETAILs {
+    public static func parseDetail(_ opc:UInt8, _ epcpdcedt:T_EPCPDCEDT ) throws -> T_DETAILs {
         do{
             var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
             
@@ -905,29 +906,29 @@ public class ELSwift {
             
             if( isDebug ) {
                 print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
-                try ELSwift.printUInt8Array(pdcedt)
+                try ELSwift.printUInt8Array(epcpdcedt)
             }
             
             // OPCループ
             for _ in (0 ..< opc ) {
                 // EPC（機能）
-                epc = pdcedt[now]
+                epc = epcpdcedt[now]
                 now += 1
                 
                 // PDC（EDTのバイト数）
-                pdc = pdcedt[now]
+                pdc = epcpdcedt[now]
                 now += 1
                 
                 var edt:[UInt8] = []  // edtは初期化しておく
                 
                 // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
                 if( pdc == 0 ) {
-                    ret[ epc ] = [0x00] // 本当はnilを入れたい
+                    ret[ epc ] = [] // 本当はnilを入れたい
                 } else {
                     // PDCループ
                     for _ in ( 0..<pdc ) {
                         // 登録
-                        edt += [ pdcedt[now] ]
+                        edt += [ epcpdcedt[now] ]
                         now += 1
                     }
                     // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
@@ -993,7 +994,7 @@ public class ELSwift {
             eldata.EDATA = try ELSwift.toHexArray( try ELSwift.substr( str, 20, UInt(str.utf8.count - 20) ) )
             eldata.ESV = try ELSwift.toHexArray( try ELSwift.substr( str, 20, 2 ) )[0]
             eldata.OPC = try ELSwift.toHexArray( try ELSwift.substr( str, 22, 2 ) )[0]
-            eldata.DETAIL = try ELSwift.toHexArray( try ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
+            eldata.EPCPDCEDT = try ELSwift.toHexArray( try ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
             eldata.DETAILs = try ELSwift.parseDetail( eldata.OPC, try ELSwift.substr( str, 24, UInt(str.utf8.count - 24) ) )
         }catch{
             throw error
@@ -1376,7 +1377,7 @@ public class ELSwift {
     // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
     public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) throws -> Void {
         do {
-            let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.DETAIL);
+            let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.EPCPDCEDT);
             let seoj = els.SEOJ
             
             // 新規IP

@@ -69,7 +69,7 @@ final class ELSwiftTests: XCTestCase {
         XCTAssertEqual(
             try ELSwift.parseDetail( "01", "B9021234" ),
             b)
-        
+
         print("-- parseDetail, OPC=4")
         var c: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         c[0x80] = [0x31]
@@ -90,7 +90,7 @@ final class ELSwiftTests: XCTestCase {
         XCTAssertEqual(
             try ELSwift.parseDetail( "05", "800131b00142bb011cb9021234b30118" ),
             d )
-        
+
         print("parseDetail, ???")
         var g: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         g[0x80] = [0x31]
@@ -112,21 +112,21 @@ final class ELSwiftTests: XCTestCase {
          {   "80": "31", "81": "0f", "82": "00005001", "83": "fe000077000002eaed646f381e00000002", "88": "42",
          "8a": "000077", "9d": "0580818fb0a0", "9e": "0680818fb0b3a0" });
          */
-        
+
         // バイトデータをいれるとELDATA形式にする
         print("-- parseBytes, OPC=1")
-        let e:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x01,  detail: [0x80, 0x01, 0x30] )
+        let e:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x01,  epcpdcedt: [0x80, 0x01, 0x30] )
         XCTAssertEqual(
             try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x01, 0x80, 0x01, 0x30] ),
             e)
         
         // 16進数で表現された文字列をいれるとELDATA形式にする
         print("-- parseBytes, OPC=4")
-        let f:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x04,  detail: [0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] )
+        let f:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj: [0x05, 0xff, 0x01], deoj: [0x0e, 0xf0, 0x01],  esv: 0x62,  opc: 0x04,  epcpdcedt: [0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] )
         XCTAssertEqual(
             try ELSwift.parseBytes( [0x10, 0x81, 0x00, 0x00, 0x05, 0xff, 0x01, 0x0e, 0xf0, 0x01, 0x62, 0x04, 0x80, 0x01, 0x31, 0xb0, 0x01, 0x42, 0xbb, 0x01, 0x1c, 0xb3, 0x01, 0x18] ),
             f)
-                
+
         // 16進数で表現された文字列をいれるとELDATA形式にする
         print("-- parseString, OPC=1")
         XCTAssertEqual(
@@ -294,7 +294,7 @@ final class ELSwiftTests: XCTestCase {
             try ELSwift.parseMapForm2( "1041414100004000604100410000020202" ),  // equal and more than 16 properties
             // output
             [  16, 128, 129, 130, 136, 138, 157, 158, 159, 215, 224, 225, 226, 229, 231, 232, 234 ] ); // 16
-        
+
         print("-- parseMapForm2 (54 props)")
         XCTAssertEqual(
             // input
@@ -327,7 +327,6 @@ final class ELSwiftTests: XCTestCase {
         print("-- printFacilities")
         try ELSwift.printFacilities()
 
-        
         
         //////////////////////////////////////////////////////////////////////
         // 終了
