@@ -394,20 +394,20 @@ public class ELSwift {
     // 表示系
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
     public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
-        print("==== ELSwift.printUInt8Array() ====")
+        print("== ELSwift.printUInt8Array()")
         let p = array.map{ String( format: "%02X", $0) }
-        if( isDebug ) { print( p ) }
+        print( p )
     }
     
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
-        print("==== ELSwift.printPDCEDT() ====")
+        print("== ELSwift.printPDCEDT()")
         let pdc = String( format: "%02X", pdcedt[0] )
         let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
-        if( isDebug ) { print( "PDC:\(pdc), EDT:\(edt)" ) }
+        print( "PDC:\(pdc), EDT:\(edt)" )
     }
     
     public static func printDetails(_ details:T_DETAILs) throws -> Void {
-        print("==== ELSwift.printDetails() ====")
+        print("== ELSwift.printDetails()")
         for( epc, edt ) in details {
             let pdc = String( format: "%02X", edt.count )
             let edt = edt.map{ String( format: "%02X", $0)}
@@ -417,7 +417,7 @@ public class ELSwift {
     }
     
     public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) throws -> Void {
-        print("==== ELSwift.pringEL_STRUCTURE() ====")
+        print("== ELSwift.pringEL_STRUCTURE()")
         let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
         let esv = String( format: "%02X", els.ESV)
@@ -432,17 +432,17 @@ public class ELSwift {
     }
     
     public static func printFacilities() throws -> Void {
-        print("==== ELSwift.printFacilities() ====")
+        print("== ELSwift.printFacilities()")
         
         for (ip, objs) in ELSwift.facilities {
-            if( isDebug ) { print("ip: \(ip)") }
+            print("ip: \(ip)")
             
             if let os = objs {
                 for (eoj, obj) in os {
-                    if( isDebug ) { print("  eoj: \(eoj)") }
+                    print("  eoj: \(eoj)")
                     
                     for (epc, edt) in obj {
-                        if( isDebug ) { print("    \(epc) = \(String(describing: edt))") }
+                        print("    \(epc) = \(String(describing: edt))")
                     }
                 }
             }
