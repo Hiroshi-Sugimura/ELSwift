@@ -3,6 +3,7 @@
 //==============================================================================
 import Foundation
 import Network
+import SystemConfiguration
 
 //==============================================================================
 public typealias T_PDCEDT  = [UInt8]
@@ -80,6 +81,10 @@ class CSendTask: Operation {
     }
 }
 
+struct NetworkMonitor {
+    static let monitor = NWPathMonitor()
+    static var connection = true
+}
 
 
 //==============================================================================
@@ -152,7 +157,7 @@ public class ELSwift {
     static let sendQueue = OperationQueue()
 
     
-    public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
             ipVer = option?.ipVer ?? 0
@@ -163,8 +168,25 @@ public class ELSwift {
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
             
-
+            
             if( isDebug ) { print("ELSwift.init()") }
+
+            // 自分のIPを取得したいけど、どうやるんだか謎。
+            // 下記でinterfaceリストまでは取れる
+            NetworkMonitor.monitor.pathUpdateHandler = { path in
+                           if path.status == .satisfied {
+                                // print("connection successful")
+                                NetworkMonitor.connection = true
+                               // print( String(describing: path.availableInterfaces) )
+                          } else {
+                                // print("no connection")
+                                NetworkMonitor.connection = false
+                                // respond to lack of connection here
+                           }
+                      }
+            let queue2 = DispatchQueue(label: "Monitor")
+            NetworkMonitor.monitor.start(queue: queue2)
+            
             //--- Listener
             /*
              let params = NWParameters.udp
@@ -242,6 +264,7 @@ public class ELSwift {
                     ELSwift.group.send(content: groupSendContent) { (error)  in
                         if( isDebug ) { print("Send complete with error \(String(describing: error))") }
                     }
+
                 case .waiting(let error):
                     if( isDebug ) { print("waiting") }
                     if( isDebug ) { print(error) }
@@ -1338,10 +1361,14 @@ public class ELSwift {
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
-            if( isDebug ) { print("-> ELSwift.userFunc", rAddress, els) }
+            if( isDebug ) {
+                print("-> ELSwift.userFunc", rAddress)
+                try ELSwift.printEL_STRUCTURE(els)
+            }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
-            if( isDebug ) { print("-> ELSwift.userFunc", rAddress, content!, error) }
+            if( isDebug ) {
+                print("-> Error: ELSwift.userFunc", rAddress, content!, error) }
             ELSwift.userFunc!(rAddress, nil, error)
         }
     }
