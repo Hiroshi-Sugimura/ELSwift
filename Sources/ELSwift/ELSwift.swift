@@ -243,19 +243,26 @@ public class ELSwift {
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
             
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
-                //let message = String(data: content, encoding: .utf8)
-                //let message = Data(content, encoding: .utf8)
-                if( isDebug ) { print("-> message from: \(message.remoteEndpoint!)") }
-                if let ipa = message.remoteEndpoint {
-                    let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                    if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
-                    ELSwift.returner( ip_port[0], content )
-                }else{
-                    if( isDebug ) { print("-> message doesn't convert to ipa") }
+                do{
+                    //let message = String(data: content, encoding: .utf8)
+                    //let message = Data(content, encoding: .utf8)
+                    if( isDebug ) { print("-> message from: \(message.remoteEndpoint!)") }
+                    if let ipa = message.remoteEndpoint {
+                        let ip_port = ipa.debugDescription.components(separatedBy: ":")
+                        if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
+                        ELSwift.returner( ip_port[0], content )
+                    }else{
+                        if( isDebug ) { print("-> message doesn't convert to ipa") }
+                    }
+                    if( isDebug ) {
+                        print("-> content:")
+                        try ELSwift.printUInt8Array( [UInt8](content!) )
+                    }
+                    //let sendContent = Data("ack".utf8)
+                    //message.reply(content: sendContent)
+                }catch{
+                    print("ELSwift.group.setReceiveHandler() error:", error)
                 }
-                if( isDebug ) { print("-> content: \([UInt8](content!))" ) }
-                //let sendContent = Data("ack".utf8)
-                //message.reply(content: sendContent)
             }
             
             ELSwift.group.stateUpdateHandler = { (newState) in
