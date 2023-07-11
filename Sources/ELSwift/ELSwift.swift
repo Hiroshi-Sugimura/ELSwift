@@ -560,7 +560,7 @@ public class ELSwift {
         for( epc, pdcedt ) in DETAILs {
             print("epc:", epc, "pdcedt:", pdcedt)
             // edtがあればそのまま使う、nilなら[0x00]をいれておく
-            if( pdcedt[0] == 0x00 ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
+            if( pdcedt == [] ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
                 epcpdcedt += [epc] + [0x00];
             }else{
                 pdc = pdcedt[0];  // 0番がpdc
