@@ -371,17 +371,17 @@ public class ELSwift {
     //---------------------------------------
     public static func receive(nWConnection:NWConnection) -> Void {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
-            if( isDebug ) { print("receiveMessage") }
+            if( isDebug ) { print("ELSwift.receive() receiveMessage") }
             if let data = data {
-                let receiveData = [UInt8](data)
-                if( isDebug ) { print(receiveData) }
-                if( isDebug ) { print(flag) }
+                // let receiveData = [UInt8](data)
+                // if( isDebug ) { print(receiveData) }
+                // if( isDebug ) { print(flag) }
                 if(flag == false) {
                     ELSwift.receive(nWConnection: nWConnection)
                 }
             }
             else {
-                if( isDebug ) { print("receiveMessage data nil") }
+                if( isDebug ) { print("ELSwift.receive() error: receiveMessage data nil") }
             }
         })
     }
@@ -390,41 +390,45 @@ public class ELSwift {
     // 表示系
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
     public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
+        print("==== ELSwift.printUInt8Array() ====")
         let p = array.map{ String( format: "%02X", $0) }
         if( isDebug ) { print( p ) }
     }
     
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
+        print("==== ELSwift.printPDCEDT() ====")
         let pdc = String( format: "%02X", pdcedt[0] )
         let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
         if( isDebug ) { print( "PDC:\(pdc), EDT:\(edt)" ) }
     }
     
     public static func printDetails(_ details:T_DETAILs) throws -> Void {
+        print("==== ELSwift.printDetails() ====")
         for( epc, edt ) in details {
             let pdc = String( format: "%02X", edt.count )
             let edt = edt.map{ String( format: "%02X", $0)}
             let _epc = String( format: "%02X", epc)
-            if( isDebug ) { print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" ) }
+            print( "EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
         }
     }
     
     public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) throws -> Void {
+        print("==== ELSwift.pringEL_STRUCTURE() ====")
         let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
         let esv = String( format: "%02X", els.ESV)
         let opc = String( format: "%02X", els.OPC)
-        if( isDebug ) { print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)") }
+        print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)")
         for( epc, edt ) in els.DETAILs {
             let pdc = String( format: "%02X", edt.count)
             let edt = edt.map{ String( format: "%02X", $0 )}
             let _epc = String( format: "%02X", epc )
-            if( isDebug ) { print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" ) }
+            print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
         }
     }
     
     public static func printFacilities() throws -> Void {
-        if( isDebug ) { print("==== printFacilities() ====") }
+        print("==== ELSwift.printFacilities() ====")
         
         for (ip, objs) in ELSwift.facilities {
             if( isDebug ) { print("ip: \(ip)") }
@@ -444,7 +448,7 @@ public class ELSwift {
     //---------------------------------------
     public static func sendBase(_ toip:String, _ array: [UInt8]) throws -> Void {
         if( isDebug ) {
-            print("ELSwift.sendBase(Data) data:")
+            print("<- ELSwift.sendBase(Data) data:")
             try ELSwift.printUInt8Array(array)
         }
         
@@ -464,7 +468,7 @@ public class ELSwift {
         socket.stateUpdateHandler = { (newState) in
             switch newState {
             case .ready:
-                if( isDebug ) { print("Ready to send") }
+                // if( isDebug ) { print("Ready to send") }
                 // 送信
                 socket.send(content: array, completion: completion)
             case .waiting(let error):
@@ -484,18 +488,19 @@ public class ELSwift {
     
     
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
+        if( isDebug ) { print("<- ELSwift.sendBase(Data)") }
         let msg:[UInt8] = [UInt8](data)
         try ELSwift.sendBase(toip, msg)
     }
     
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
-        if( isDebug ) { print("ELSwift.sendBase(UInt8)") }
+        if( isDebug ) { print("<- ELSwift.sendBase(UInt8)") }
         // 送信
         try ELSwift.sendBase(toip, array )
     }
     
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
-        if( isDebug ) { print("ELSwift.sendString()") }
+        if( isDebug ) { print("<- ELSwift.sendString()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBase( toip, data )
@@ -503,6 +508,7 @@ public class ELSwift {
     
     // sendOPC1( targetIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00])
     public static func sendOPC1(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
+        if( isDebug ) { print("<- ELSwift.sendOPC1(...)") }
         do{
             var binArray:[UInt8]
             
@@ -539,6 +545,7 @@ public class ELSwift {
     }
     
     public static func sendDetails(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv:UInt8, _ DETAILs:T_DETAILs ) throws -> Void {
+        if( isDebug ) { print("<- ELSwift.sendDetails(...)") }
         // TIDの調整
         ELSwift.increaseTID()
         
@@ -549,7 +556,7 @@ public class ELSwift {
         
         // detailsがArrayのときはEPCの出現順序に意味がある場合なので、順番を崩さないようにせよ
         for( epc, pdcedt ) in DETAILs {
-            print("epc:", epc, "pdcedt:", pdcedt)
+            // print("epc:", epc, "pdcedt:", pdcedt)
             // edtがあればそのまま使う、nilなら[0x00]をいれておく
             if( pdcedt == [] ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
                 epcpdcedt += [epc] + [0x00];
@@ -570,6 +577,7 @@ public class ELSwift {
     
     // elsを送る、TIDはAuto
     public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
+        if( isDebug ) { print("<- ELSwift.sendELS(els)") }
         // TIDの調整
         ELSwift.increaseTID()
 
@@ -579,14 +587,14 @@ public class ELSwift {
     
     //------------ multi send
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
-        if( isDebug ) { print("ELSwift.sendBaseMulti(Data)") }
+        if( isDebug ) { print("<= ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
             print("ELSwift.sendBaseMulti(Data) Send complete with error \(String(describing: error))")
         }
     }
     
     public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
-        if( isDebug ) { print("ELSwift.sendBaseMulti(UInt8)") }
+        if( isDebug ) { print("<= ELSwift.sendBaseMulti(UInt8)") }
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
@@ -595,13 +603,14 @@ public class ELSwift {
     }
     
     public static func sendStringMulti(_ message: String) throws -> Void {
-        if( isDebug ) { print("ELSwift.sendStringMulti()") }
+        if( isDebug ) { print("<= ELSwift.sendStringMulti()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBaseMulti( data )
     }
     
     public static func sendOPC1Multi(_ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
+        if( isDebug ) { print("<= ELSwift.sendOPC1Multi()") }
         do{
             var binArray:[UInt8]
             
@@ -637,7 +646,7 @@ public class ELSwift {
     }
     
     public static func search() throws -> Void {
-        if( isDebug ) { print("ELSwift.search()") }
+        if( isDebug ) { print("<= ELSwift.search()") }
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
@@ -895,17 +904,22 @@ public class ELSwift {
     
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ epcpdcedt:T_EPCPDCEDT ) throws -> T_DETAILs {
-        do{
             var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
             
             var now:Int = 0  // 現在のIndex
             var epc:UInt8 = 0
             var pdc:UInt8 = 0
-            
+            /*
+             do{
             if( isDebug ) {
                 print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
                 try ELSwift.printUInt8Array(epcpdcedt)
             }
+             }catch{
+                 print("ELSwift.parseDetail() error:", error)
+                 throw error
+             }
+             */
             
             // OPCループ
             for _ in (0 ..< opc ) {
@@ -936,10 +950,6 @@ public class ELSwift {
             }  // opcループ
             
             return ret
-        }catch{
-            print("ELSwift.parseDetail() error:", error)
-            throw error
-        }
     }
     
     // Detailだけをparseする，内部で主に使う
@@ -1139,7 +1149,7 @@ public class ELSwift {
             }
             
             if( isDebug ) {
-                print("ELSwift.returner() els:")
+                print("-> ELSwift.returner() els:")
                 try ELSwift.printEL_STRUCTURE(els)
             }
             
