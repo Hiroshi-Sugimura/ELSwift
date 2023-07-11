@@ -873,14 +873,17 @@ public class ELSwift {
     
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ pdcedt:T_PDCEDT ) throws -> T_DETAILs {
-        // if( isDebug ) { print("parseDetail()")
+
         var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
         
         var now:Int = 0  // 現在のIndex
         var epc:UInt8 = 0
         var pdc:UInt8 = 0
         
-        if( isDebug ) { try ELSwift.printUInt8Array(pdcedt) }
+        if( isDebug ) {
+            print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
+            try ELSwift.printUInt8Array(pdcedt)
+        }
         
         // OPCループ
         for _ in (0 ..< opc ) {
