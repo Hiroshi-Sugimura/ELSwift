@@ -1291,22 +1291,22 @@ public class ELSwift {
                         if( array == [] ) {  // GET_SNAの時など、EDT = []の時がある
                             break
                         }
-                        var details:[UInt8] = []
+                        var epcpdcedt:T_EPCPDCEDT = []
                         let num:Int = Int( array[0] )
                         var i = 0
                         while i < num {
                             // d6, 9d, 9e, 9fはサーチの時点で取得しているはずなので取得しない
                             // 特にd6と9fは取り直すと無限ループするので注意
                             if( array[i+1] != 0xd6 && array[i+1] != 0x9d && array[i+1] != 0x9e && array[i+1] != 0x9f ) {
-                                details.append( array[i+1] )
-                                details.append( 0x00 )
+                                epcpdcedt.append( array[i+1] )
+                                epcpdcedt.append( 0x00 )
                             }
                             i += 1
                         }
                         
 
-                        // let els:EL_STRUCTURE = EL_STRUCTURE( tid:nil, seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
-                        // sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                        let els:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, epcpdcedt:epcpdcedt)
+                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
 
                         // old try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                     }
