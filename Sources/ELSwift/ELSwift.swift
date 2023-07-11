@@ -243,38 +243,35 @@ public class ELSwift {
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
             
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
-                do{
-                    //let message = String(data: content, encoding: .utf8)
-                    //let message = Data(content, encoding: .utf8)
-                    if( isDebug ) { print("-> message from: \(message.remoteEndpoint!)") }
-                    if let ipa = message.remoteEndpoint {
-                        let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                        if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
-                        ELSwift.returner( ip_port[0], content )
-                    }else{
-                        if( isDebug ) { print("-> message doesn't convert to ipa") }
-                    }
-                    if( isDebug ) {
-                        print("-> content:")
-                        try ELSwift.printUInt8Array( [UInt8](content!) )
-                    }
-                    //let sendContent = Data("ack".utf8)
-                    //message.reply(content: sendContent)
-                }catch{
-                    print("ELSwift.group.setReceiveHandler() error:", error)
+                if let ipa = message.remoteEndpoint {
+                    let ip_port = ipa.debugDescription.components(separatedBy: ":")
+                    // if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
+                    ELSwift.returner( ip_port[0], content )
+                }else{
+                    if( isDebug ) { print("-> message doesn't convert to ipa") }
                 }
+                /*
+                 do{
+                 if( isDebug ) {
+                 print("-> content:")
+                 try ELSwift.printUInt8Array( [UInt8](content!) )
+                 }
+                 }catch{
+                 print("ELSwift.group.setReceiveHandler() error:", error)
+                 }
+                 */
             }
             
             ELSwift.group.stateUpdateHandler = { (newState) in
                 if( isDebug ) { print("Group entered state \(String(describing: newState))") }
                 switch newState {
                 case .ready:
-                    if( isDebug ) { print("ready") }
+                    // if( isDebug ) { print("ready") }
                     var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
                     msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
                     let groupSendContent = Data(msg)  // .data(using: .utf8)
                     
-                    if( isDebug ) { print("send...UDP") }
+                    // if( isDebug ) { print("send...UDP") }
                     ELSwift.group.send(content: groupSendContent) { (error)  in
                         if( isDebug ) { print("Send complete with error \(String(describing: error))") }
                     }
@@ -296,10 +293,7 @@ public class ELSwift {
             }
             
             let queue = DispatchQueue(label: "ECHONETNetwork")
-            //if( isDebug ) { print(group.isUnicastDisabled) }
             ELSwift.group.start(queue: queue)
-            //group.start(queue: .main)
-            
             
             // 送信用ソケットの準備
             EL_obj = objList
@@ -462,7 +456,7 @@ public class ELSwift {
             if ( error != nil ) {
                 print("sendBase() error: \(String(describing: error))")
             }else{
-                if( isDebug ) { print("sendBase() 送信完了") }
+                // if( isDebug ) { print("sendBase() 送信完了") }
                 socket.cancel()  // 送信したらソケット閉じる
             }
         }

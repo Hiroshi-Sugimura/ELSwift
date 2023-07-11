@@ -266,7 +266,7 @@ final class ELSwiftTests: XCTestCase {
          */
 
          // 機器検索
-         print("search")
+         print("-- search")
          try ELSwift.search()
         
         //////////////////////////////////////////////////////////////////////
