@@ -1244,9 +1244,10 @@ public class ELSwift {
                     // V1.1
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
-                    print( "#### GET_RES : ", Array(els.SEOJ[0..<2]) )
                     if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE)  {
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
+                            print("Get[D6] : ")
+                            try ELSwift.printUInt8Array(array)
                             // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
                             var instNum:Int = Int( array[0] ) // 0番目はPDC, indexに使うのでIntにする
