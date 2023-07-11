@@ -326,7 +326,7 @@ public class ELSwift {
             Node_details[0x9f] = [0x09, 0x80, 0x82, 0x83, 0x8a, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数
             Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, user項目
             Node_details[0xd4] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数, user項目, D4はノードプロファイルが入る
-            Node_details[0xd5] = [ UInt8(EL_obj.count)] + EL_obj    // インスタンスリスト通知, user項目
+            Node_details[0xd5] = [ UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, user項目
             Node_details[0xd6] = Node_details[0xd5]    // 自ノードインスタンスリストS, user項目
             Node_details[0xd7] = [ UInt8(EL_cls.count)] + EL_cls  // 自ノードクラスリストS, user項目
             
