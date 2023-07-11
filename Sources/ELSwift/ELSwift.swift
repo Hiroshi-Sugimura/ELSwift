@@ -353,17 +353,7 @@ public class ELSwift {
         return ELSwift.isReady
     }
     
-    
-    public static func decreaseWaitings() {
-        if( ELSwift.autoGetWaitings != 0 ) {
-            ELSwift.autoGetWaitings -= 1;
-        }
-    }
-    
-    public static func increaseWaitings() {
-        ELSwift.autoGetWaitings += 1;
-    }
-    
+        
     public static func increaseTID() {
         // TIDの調整
         var carry = 0; // 繰り上がり
@@ -1176,26 +1166,13 @@ public class ELSwift {
                     // つまりここではPDC=0のものを読みに行くのだが、一気に取得するとまた失敗するかもしれないのでひとつづつ取得する
                     // autoGetPropertiesがfalseなら自動取得しない
                     // epcひとつづつ取得する方式
-                    /*
-                     if(  ELSwift.autoGetProperties ) {
-                     for( let epc in els.DETAILs ) {
-                     setTimeout(() => {
-                     ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, { [epc]:'' } )
-                     ELSwift.decreaseWaitings()
-                     }, ELSwift.autoGetDelay * (ELSwift.autoGetWaitings+1))
-                     ELSwift.increaseWaitings()
-                     }
-                     }
-                     */
-                    /*
-                     if(  ELSwift.autoGetProperties ) {
-                     for( let epc in els.DETAILs ) {
-                    let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
-                    
-                    sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
-                     }
-                     }
-                     */
+                    if(  ELSwift.autoGetProperties ) {
+                        for (epc, _) in els.DETAILs {
+                            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x01, epcpdcedt: [epc, 0x00] )
+                            
+                            sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                        }
+                    }
                     break
                     
                 case ELSwift.INF_SNA:    // "53"
@@ -1246,22 +1223,14 @@ public class ELSwift {
                     // autoGetPropertiesがfalseなら自動取得しない
                     // epc一気に取得する方法に切り替えた(ver.2.12.0以降)
                     if(  ELSwift.autoGetProperties ) {
-                        var details: T_DETAILs = T_DETAILs()
-                        for( epc, _ ) in els.DETAILs {
-                            details[epc] = [0x00]
+                        for (epc, _) in els.DETAILs {
+                            let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x01, epcpdcedt: [epc, 0x00] )
+                            
+                            sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
                         }
-                        // console.log('ELSwift.SET_RES: autoGetProperties')
-                        /*
-                         ELSwift.sendDetails( rinfo, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details )
-                         */
-                        /*
-                         let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
-                         
-                         sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
-                         */
                     }
                     break
-                    
+
                 case ELSwift.GET_SNA, ELSwift.GET_RES: // 52, 72
                     // 52
                     // GET_SNAは複数EPC取得時に、一つでもエラーしたらSNAになるので、他EPCが取得成功している場合があるため無視してはいけない。
