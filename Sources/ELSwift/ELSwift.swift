@@ -910,17 +910,6 @@ public class ELSwift {
             var now:Int = 0  // 現在のIndex
             var epc:UInt8 = 0
             var pdc:UInt8 = 0
-            /*
-             do{
-            if( isDebug ) {
-                print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
-                try ELSwift.printUInt8Array(epcpdcedt)
-            }
-             }catch{
-                 print("ELSwift.parseDetail() error:", error)
-                 throw error
-             }
-             */
             
             // OPCループ
             for _ in (0 ..< opc ) {
@@ -937,15 +926,39 @@ public class ELSwift {
                 // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
                 if( pdc == 0 ) {
                     ret[ epc ] = [] // 本当はnilを入れたい
+
                 } else {
-                    // PDCループ
-                    for _ in ( 0..<pdc ) {
-                        // 登録
-                        edt += [ epcpdcedt[now] ]
-                        now += 1
+                    // property mapだけEDT[0] != バイト数なので別処理
+                    if( epc == 0x9d || epc == 0x9e || epc == 0x9f ) {
+                        if( pdc >= 17) { // プロパティの数が16以上の場合（プロパティカウンタ含めてPDC17以上）は format 2
+                            // 0byte=epc, 2byte=pdc, 4byte=edt
+                            for _ in 0 ..< pdc {
+                                // 登録
+                                edt.append( epcpdcedt[now] )
+                                now += 1
+                            }
+                            ret[ epc ] = try ELSwift.parseMapForm2(edt)
+                            // return ret;
+                        }else{
+                            // format 2でなければ以下と同じ形式で解析可能
+                            for _ in 0 ..< pdc {
+                                // 登録
+                                edt.append( epcpdcedt[now] )
+                                now += 1
+                            }
+                            // console.log('epc:', EL.toHexString(epc), 'edt:', EL.bytesToString(edt) );
+                            ret[ epc ] = edt
+                        }
+                    }else{
+                        // PDCループ
+                        for _ in ( 0..<pdc ) {
+                            // 登録
+                            edt += [ epcpdcedt[now] ]
+                            now += 1
+                        }
+                        // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
+                        ret[ epc ] = edt
                     }
-                    // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
-                    ret[ epc ] = edt
                 }
                 
             }  // opcループ
@@ -972,15 +985,22 @@ public class ELSwift {
                 throw ELError.BadReceivedData
             }
             
-            // 数値だったら文字列にして
-            var str:String = ""
-            
-            for i in (0..<bytes.count) {
-                str += ELSwift.toHexString( bytes[i] )
+            var eldata: EL_STRUCTURE = EL_STRUCTURE()
+            do{
+                eldata.EHD = Array(bytes[0...1])
+                eldata.TID = Array(bytes[2...3])
+                eldata.SEOJ = Array(bytes[4...6])
+                eldata.DEOJ = Array(bytes[7...9])
+                eldata.EDATA = Array(bytes[10...])
+                eldata.ESV = bytes[10]
+                eldata.OPC = bytes[11]
+                eldata.EPCPDCEDT = Array(bytes[12...])
+                eldata.DETAILs = try ELSwift.parseDetail( eldata.OPC, eldata.EPCPDCEDT )
+            }catch{
+                throw error
             }
             
-            // 文字列にしたので，parseStringで何とかする
-            return ( try ELSwift.parseString(str) )
+            return ( eldata )
         } catch {
             throw error
         }
