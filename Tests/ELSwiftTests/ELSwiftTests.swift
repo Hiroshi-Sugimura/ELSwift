@@ -3,7 +3,7 @@ import XCTest
 @testable import ELSwift
 
 final class ELSwiftTests: XCTestCase {
-    let objectList:[String] = ["05ff01"]
+    let objectList:[UInt8] = [0x05, 0xff, 0x01]
     override func setUp() {
         super.setUp()
         

@@ -88,13 +88,16 @@ class CSendTask: Operation {
     }
 }
 
+
+//==============================================================================
+// Network Object
+
 struct NetworkMonitor {
     static let monitor = NWPathMonitor()
     static var connection = true
 }
 
 
-//==============================================================================
 enum ELError: Error {
     case BadNetwork
     case BadString(String)
@@ -141,8 +144,8 @@ public class ELSwift {
     // user settings
     static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
     
-    static var EL_obj: [String]!
-    static var EL_cls: [String]!
+    static var EL_obj: [UInt8]!
+    static var EL_cls: [UInt8]!
     
     public static var Node_details:T_DETAILs = T_DETAILs()
     
@@ -164,7 +167,7 @@ public class ELSwift {
     static let sendQueue = OperationQueue()
 
     
-    public static func initialize(_ objList: [String], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
             ipVer = option?.ipVer ?? 0
@@ -175,6 +178,11 @@ public class ELSwift {
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
             
+            // 正しいオブジェクトリストのチェック
+            if( 1 < objList.count && objList.count % 3 != 0 ) {
+                print("ELSwift.initialize objList is invalid.")
+                return
+            }
             
             if( isDebug ) { print("ELSwift.init()") }
 
@@ -299,9 +307,14 @@ public class ELSwift {
             // 送信用ソケットの準備
             EL_obj = objList
             
-            let classes = try objList.map{
-                try ELSwift.substr( $0, 0, 4)
+            var classes:[UInt8] = [UInt8]()
+            
+            for i in 0 ..< objList.count / 3 {
+                let begin = i * 3
+                let end = i * 3 + 1
+                classes += Array( objList[ begin ... end ] )
             }
+
             EL_cls = classes
             
             Node_details[0x80] = [0x30]
@@ -313,19 +326,9 @@ public class ELSwift {
             Node_details[0x9f] = [0x09, 0x80, 0x82, 0x83, 0x8a, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数
             Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, user項目
             Node_details[0xd4] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数, user項目, D4はノードプロファイルが入る
-            
-            var v = try EL_obj.map{
-                try ELSwift.toHexArray( $0 )
-            }
-            v.insert( [UInt8(objList.count)], at: 0 )
-            Node_details[0xd5] = v.flatMap{ $0 }    // インスタンスリスト通知, user項目
+            Node_details[0xd5] = [ UInt8(EL_obj.count)] + EL_obj    // インスタンスリスト通知, user項目
             Node_details[0xd6] = Node_details[0xd5]    // 自ノードインスタンスリストS, user項目
-            
-            v = try EL_cls.map{
-                try ELSwift.toHexArray( $0 )
-            }
-            v.insert( [UInt8(EL_cls.count)], at: 0 )
-            Node_details[0xd7] = v.flatMap{ $0 }  // 自ノードクラスリストS, user項目
+            Node_details[0xd7] = [ UInt8(EL_cls.count)] + EL_cls  // 自ノードクラスリストS, user項目
             
             // 初期化終わったのでノードのINFをだす
             try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, Node_details[0xd5]! )
