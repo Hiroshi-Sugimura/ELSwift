@@ -1,8 +1,10 @@
 /// ECHONET Lite protocol for Swift
 ///
-/// 
+/// ECHONET Lite is a open protocol for IoT and Smart home.
 ///
-/// SUGIMURA Hiroshi
+/// Copyright (c) 2023.07.11 SUGIMURA Hiroshi
+
+
 //==============================================================================
 import Foundation
 import Network
@@ -110,6 +112,7 @@ enum ELError: Error {
 
 
 //==============================================================================
+/// the main class for ELSwift, ECHONET Lite protocol
 public class ELSwift {
     public static let networkType = "_networkplayground._udp."
     public static let networkDomain = "local"
@@ -169,7 +172,11 @@ public class ELSwift {
     
     static let sendQueue = OperationQueue()
 
-    
+    /// - Parameters:
+    ///   - objList:
+    ///   - callback:
+    ///   - option:
+    /// - Returns: Void
     public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
