@@ -1116,6 +1116,11 @@ public class ELSwift {
                 return
             }
             
+            if( isDebug ) {
+                print("ELSwift.returner() els:")
+                try ELSwift.printEL_STRUCTURE(els)
+            }
+            
             // Node profileに関してきちんと処理する
             if ( Array(els.DEOJ[0..<2]) == ELSwift.NODE_PROFILE ) {
                 els.DEOJ = ELSwift.NODE_PROFILE_OBJECT  // ここで0ef000, 0ef001, 0ef002の表記ゆれを統合する
@@ -1266,9 +1271,10 @@ public class ELSwift {
                         }
                         
 
-                        let els:EL_STRUCTURE = EL_STRUCTURE( tid:nil, seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
-                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
-                        // try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
+                        // let els:EL_STRUCTURE = EL_STRUCTURE( tid:nil, seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, detail:details)
+                        // sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+
+                        // old try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                     }
                     break
                     
