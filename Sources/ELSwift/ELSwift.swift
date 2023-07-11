@@ -1288,6 +1288,9 @@ public class ELSwift {
                     if let array:T_PDCEDT = els.DETAILs[0x9f]  {  // 自動プロパティ取得は初期化フラグ, 9fはGetProps. 基本的に9fは9d, 9eの和集合になる。(そのような決まりはないが)
                         // DETAILsは解析後なので，format 1も2も関係なく処理する
                         // EPC取れるだけ一気にとる方式に切り替えた(ver.2.12.0以降)
+                        if( array == [] ) {  // GET_SNAの時など、EDT = []の時がある
+                            break
+                        }
                         var details:[UInt8] = []
                         let num:Int = Int( array[0] )
                         var i = 0
