@@ -1302,7 +1302,7 @@ public class ELSwift {
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
                         ELSwift.getPropertyMaps( rAddress, ELSwift.NODE_PROFILE_OBJECT )
-                        if( isDebug ) { print("-> ELSwift.INF", rAddress, ELSwift.NODE_PROFILE_OBJECT) }
+                        if( isDebug ) { print("-> ELSwift.INF rAddress:", rAddress, " NodeProfileObject") }
                     }
                     break
                     
