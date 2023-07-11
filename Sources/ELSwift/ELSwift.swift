@@ -1256,14 +1256,15 @@ public class ELSwift {
                             try ELSwift.printUInt8Array(array)
                             // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
-                            var instNum:Int = Int( array[0] ) // 0番目はPDC, indexに使うのでIntにする
-                            while( 0 < instNum ) {
-                                let begin:Int =  ( instNum - 1) * 3 + 1
-                                let end:Int = ( instNum - 1) * 3 + 4
-                                let obj:[UInt8] = Array( array[  begin ..< end  ] )
-                                ELSwift.getPropertyMaps( rAddress, obj )
-                                if( isDebug ) { print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj) }
-                                instNum -= 1
+                            if( array != [] ) {  // GET_SNAだと[]の時があるので排除
+                                let instNum:Int = Int( array[0] ) // 0番目はオブジェクト数, indexに使うのでIntにする
+                                for i in 0 ..< instNum {
+                                    let begin:Int = i * 3 + 1
+                                    let end:Int = i * 3 + 4
+                                    let obj:[UInt8] = Array( array[  begin ..< end  ] )
+                                    ELSwift.getPropertyMaps( rAddress, obj )
+                                    if( isDebug ) { print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj) }
+                                }
                             }
                         }
                     }
