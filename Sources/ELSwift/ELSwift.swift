@@ -647,7 +647,7 @@ public class ELSwift {
     
     public static func search() throws -> Void {
         if( isDebug ) { print("<= ELSwift.search()") }
-        var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
+        var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
@@ -1149,7 +1149,7 @@ public class ELSwift {
             }
             
             if( isDebug ) {
-                print("-> ELSwift.returner() els:")
+                print("===== ELSwift.returner() =====")
                 try ELSwift.printEL_STRUCTURE(els)
             }
             
