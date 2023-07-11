@@ -873,47 +873,51 @@ public class ELSwift {
     
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ pdcedt:T_PDCEDT ) throws -> T_DETAILs {
-
-        var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
-        
-        var now:Int = 0  // 現在のIndex
-        var epc:UInt8 = 0
-        var pdc:UInt8 = 0
-        
-        if( isDebug ) {
-            print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
-            try ELSwift.printUInt8Array(pdcedt)
-        }
-        
-        // OPCループ
-        for _ in (0 ..< opc ) {
-            // EPC（機能）
-            epc = pdcedt[now]
-            now += 1
+        do{
+            var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
             
-            // PDC（EDTのバイト数）
-            pdc = pdcedt[now]
-            now += 1
+            var now:Int = 0  // 現在のIndex
+            var epc:UInt8 = 0
+            var pdc:UInt8 = 0
             
-            var edt:[UInt8] = []  // edtは初期化しておく
-            
-            // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
-            if( pdc == 0 ) {
-                ret[ epc ] = [0x00] // 本当はnilを入れたい
-            } else {
-                // PDCループ
-                for _ in ( 0..<pdc ) {
-                    // 登録
-                    edt += [ pdcedt[now] ]
-                    now += 1
-                }
-                // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
-                ret[ epc ] = edt
+            if( isDebug ) {
+                print("ELSwift.parseDetail() opc:", opc, "pdcedt:")
+                try ELSwift.printUInt8Array(pdcedt)
             }
             
-        }  // opcループ
-        
-        return ret
+            // OPCループ
+            for _ in (0 ..< opc ) {
+                // EPC（機能）
+                epc = pdcedt[now]
+                now += 1
+                
+                // PDC（EDTのバイト数）
+                pdc = pdcedt[now]
+                now += 1
+                
+                var edt:[UInt8] = []  // edtは初期化しておく
+                
+                // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
+                if( pdc == 0 ) {
+                    ret[ epc ] = [0x00] // 本当はnilを入れたい
+                } else {
+                    // PDCループ
+                    for _ in ( 0..<pdc ) {
+                        // 登録
+                        edt += [ pdcedt[now] ]
+                        now += 1
+                    }
+                    // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
+                    ret[ epc ] = edt
+                }
+                
+            }  // opcループ
+            
+            return ret
+        }catch{
+            print("ELSwift.parseDetail() error:", error)
+            throw error
+        }
     }
     
     // Detailだけをparseする，内部で主に使う
