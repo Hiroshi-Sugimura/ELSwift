@@ -64,6 +64,12 @@ class CSendTask: Operation {
     init(_ _address: String, _ _els: EL_STRUCTURE) {
         self.address = _address
         self.els = _els
+        do{
+            print("CSendTask.init()")
+            try ELSwift.printEL_STRUCTURE(els)
+        }catch{
+            print("CSendTask.init() error:", error)
+        }
     }
     
     override func main () {
