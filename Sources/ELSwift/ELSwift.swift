@@ -267,7 +267,8 @@ public class ELSwift {
                 switch newState {
                 case .ready:
                     // if( isDebug ) { print("ready") }
-                    var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x05, 0xff, 0x01] + [0x0e, 0xf0, 0x01 ]
+                    // 初期サーチ
+                    var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
                     msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
                     let groupSendContent = Data(msg)  // .data(using: .utf8)
                     
