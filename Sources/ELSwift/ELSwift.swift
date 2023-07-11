@@ -372,17 +372,17 @@ public class ELSwift {
     public static func receive(nWConnection:NWConnection) -> Void {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
             if( isDebug ) { print("ELSwift.receive() receiveMessage") }
-            if let data = data {
+            //if let data = data {
                 // let receiveData = [UInt8](data)
                 // if( isDebug ) { print(receiveData) }
                 // if( isDebug ) { print(flag) }
                 if(flag == false) {
                     ELSwift.receive(nWConnection: nWConnection)
                 }
-            }
-            else {
-                if( isDebug ) { print("ELSwift.receive() error: receiveMessage data nil") }
-            }
+            //}
+            //else {
+            //    if( isDebug ) { print("ELSwift.receive() error: receiveMessage data nil") }
+            //}
         })
     }
     
@@ -1249,6 +1249,7 @@ public class ELSwift {
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
                     if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE)  {
+                        print("Get[0ef0xx] : ")
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
                             print("Get[D6] : ")
                             try ELSwift.printUInt8Array(array)
