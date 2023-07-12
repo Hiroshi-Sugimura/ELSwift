@@ -3,6 +3,20 @@
 ECHONET Lite通信プロトコルをサポートするパッケージです。
 
 
+# 使い方
+
+XCodeなら次のようにして使う
+
+File > AddPackages... > 右上の[Search or Enter Package URL] にGithubのURLをコピペ
+
+パッケージ更新は、左型ペインのパッケージのところを右クリックして Upgrade package する
+
+
+# らいせんす
+
+えむあいてー
+
+
 # for Developper
 
 テストしたいとき

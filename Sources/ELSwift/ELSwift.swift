@@ -192,25 +192,6 @@ public class ELSwift {
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
 
-            // 自分のプロパティリスト（初期値はコントローラとして設定している）
-            // super
-            Node_details[0x88] = [0x42] // Fault status, get
-            Node_details[0x8a] = [0x00, 0x00, 0x77] // maker code, manufacturer code, kait = 00 00 77, get
-            Node_details[0x8b] = [0x00, 0x00, 0x02] // business facility code, homeele = 00 00 02, get
-            Node_details[0x9d] = [0x02, 0x80, 0xd5] // inf map, 1 Byte目は個数, get
-            Node_details[0x9e] = [0x01, 0xbf]       // set map, 1 Byte目は個数, get
-            Node_details[0x9f] = [0x0f, 0x80, 0x82, 0x83, 0x88, 0x8a, 0x8b, 0x9d, 0x9e, 0x9f, 0xbf, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数, get
-            // detail
-            Node_details[0x80] = [0x30] // 動作状態, get, inf
-            Node_details[0x82] = [0x01, 0x0d, 0x01, 0x00] // EL version, 1.13, get
-            Node_details[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] // identifier, initialize時に、mac addressできちんとユニークの値にセットとよい, get
-            Node_details[0xbf] = [0x80, 0x00] // 個体識別情報, Unique identifier data
-            Node_details[0xd3] = [0x00, 0x00, 0x01]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
-            Node_details[0xd4] = [0x00, 0x02]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, get
-            Node_details[0xd5] = []    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算, anno
-            Node_details[0xd6] = []    // 自ノードインスタンスリストS, initialize時にuser項目から自動計算, get
-            Node_details[0xd7] = []     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get
-
 
             // 自分のIPを取得したいけど、どうやるんだか謎。
             // 下記でinterfaceリストまでは取れる
@@ -342,19 +323,25 @@ public class ELSwift {
             }
 
             EL_cls = classes
-            
-            Node_details[0x80] = [0x30]
-            Node_details[0x82] = [0x01, 0x0a, 0x01, 0x00] // EL version, 1.1
-            Node_details[0x83] = [0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] // identifier
-            Node_details[0x8a] = [0x00, 0x00, 0x77] // maker code
-            Node_details[0x9d] = [0x02, 0x80, 0xd5]       // inf map, 1 Byte目は個数
-            Node_details[0x9e] = [0x00]                 // set map, 1 Byte目は個数
-            Node_details[0x9f] = [0x09, 0x80, 0x82, 0x83, 0x8a, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数
-            Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, user項目
-            Node_details[0xd4] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数, user項目, D4はノードプロファイルが入る
-            Node_details[0xd5] = [ UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, user項目
-            Node_details[0xd6] = Node_details[0xd5]    // 自ノードインスタンスリストS, user項目
-            Node_details[0xd7] = [ UInt8(EL_cls.count)] + EL_cls  // 自ノードクラスリストS, user項目
+
+            // 自分のプロパティリスト（初期値はコントローラとして設定している）
+            // super
+            Node_details[0x88] = [0x42] // Fault status, get
+            Node_details[0x8a] = [0x00, 0x00, 0x77] // maker code, manufacturer code, kait = 00 00 77, get
+            Node_details[0x8b] = [0x00, 0x00, 0x02] // business facility code, homeele = 00 00 02, get
+            Node_details[0x9d] = [0x02, 0x80, 0xd5] // inf map, 1 Byte目は個数, get
+            Node_details[0x9e] = [0x01, 0xbf]       // set map, 1 Byte目は個数, get
+            Node_details[0x9f] = [0x0f, 0x80, 0x82, 0x83, 0x88, 0x8a, 0x8b, 0x9d, 0x9e, 0x9f, 0xbf, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数, get
+            // detail
+            Node_details[0x80] = [0x30] // 動作状態, get, inf
+            Node_details[0x82] = [0x01, 0x0d, 0x01, 0x00] // EL version, 1.13, get
+            Node_details[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] // identifier, initialize時に、mac addressできちんとユニークの値にセットとよい, get
+            Node_details[0xbf] = [0x80, 0x00] // 個体識別情報, Unique identifier data
+            Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
+            Node_details[0xd4] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, D4はノードプロファイルをカウントする(+1), get
+            Node_details[0xd5] = [UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算 anno
+            Node_details[0xd6] = Node_details[0xd5]   // 自ノードインスタンスリストS, initialize時にuser項目から自動計算, get
+            Node_details[0xd7] = [ UInt8(EL_cls.count)] + EL_cls     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get
             
             // 初期化終わったのでノードのINFをだす
             try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, Node_details[0xd5]! )
@@ -364,7 +351,6 @@ public class ELSwift {
         }catch {
             throw error
         }
-        
         
     }
     
@@ -742,11 +728,11 @@ public class ELSwift {
         var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
         // console.log( 'Recv DETAILs:', els.DETAILs )
-        for ( epc, edt ) in els.DETAILs {  // key=epc, value=edt
+        for ( epc, _ ) in els.DETAILs {  // key=epc, value=edt
             if( ELSwift.replyGetDetail_sub( els, dev_details, epc ) ) {
                 retDetailsArray.append( epc )
-                retDetailsArray.append( UInt8(edt.count) )
-                retDetailsArray += edt
+                retDetailsArray.append( UInt8(dev_details[els.DEOJ]![epc]!.count) )
+                retDetailsArray += dev_details[els.DEOJ]![epc]!
                 // console.log( 'retDetails:', retDetails )
             }else{
                 // console.log( 'failed:', els.DEOJ, epc )
@@ -807,7 +793,7 @@ public class ELSwift {
             ret_opc += 1
         }
 
-        if( els.ESV == ELSwift.SETI ) { return }  // SetIなら返却なし
+        if( els.ESV == ELSwift.SETI ) { return }  // SetIなら返却なし、sub関数でSet処理をやっているのでここで判定
 
         // SetCは SetC_ResかSetC_SNAを返す
         let ret_esv:UInt8 = success ? 0x71 : 0x5  // 一つでも失敗したらSETC_SNA
