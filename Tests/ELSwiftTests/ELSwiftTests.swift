@@ -91,7 +91,7 @@ final class ELSwiftTests: XCTestCase {
             try ELSwift.parseDetail( "05", "800131b00142bb011cb9021234b30118" ),
             d )
 
-        print("parseDetail, ???")
+        print("-- parseDetail, ???")
         var g: Dictionary<UInt8, [UInt8]> = [UInt8: [UInt8]]() // 戻り値用，連想配列
         g[0x80] = [0x31]
         g[0x81] = [0x0f]
@@ -171,14 +171,14 @@ final class ELSwiftTests: XCTestCase {
             "1081 0000 05ff01 0ef001 62 01300180");
         
         // ELDATAをいれるとELらしい切り方のStringを得る
-        print("getSeparatedString_ELDATA")
+        print("-- getSeparatedString_ELDATA")
         XCTAssertEqual(
             ELSwift.getSeparatedString_ELDATA(f),
             "1081 0000 05ff01 0ef001 6204800131b00142bb011cb30118"
         );
                 
         // ELDATA形式から配列へ
-        print("ELDATA2Array")
+        print("-- ELDATA2Array")
         XCTAssertEqual(
             try ELSwift.ELDATA2Array( f ),
             // output

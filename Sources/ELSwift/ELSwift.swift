@@ -54,7 +54,7 @@ public struct EL_STRUCTURE : Equatable{
         do{
             DETAILs = try ELSwift.parseDetail(opc, epcpdcedt)
         }catch{
-            print("EL_STRUCTURE.init() error:", error)
+            print("Error!! ELSwift - EL_STRUCTURE.init() error:", error)
             DETAILs = T_DETAILs()
         }
     }
@@ -84,7 +84,7 @@ class CSendTask: Operation {
         do{
             try ELSwift.sendELS(address, els)
         }catch{
-            print("CSendTask.main()", els)
+            print("Error!! ELSwift - CSendTask.main()", els)
         }
     }
 }
@@ -253,7 +253,7 @@ public class ELSwift {
             
             //---- multicast
             guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
-            else { fatalError("error in Muticast") }
+            else { fatalError("Error!! ELSwift.initialize() error in Muticast") }
             
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
             
@@ -263,7 +263,7 @@ public class ELSwift {
                     // if( isDebug ) { print("-> message from IP:\(ip_port[0]), Port: \(ip_port[1])") }
                     ELSwift.returner( ip_port[0], content )
                 }else{
-                    if( isDebug ) { print("-> message doesn't convert to ipa") }
+                    if( isDebug ) { print("-> ELSwift.initiallize() message doesn't convert to ipa") }
                 }
                 /*
                  do{
@@ -278,7 +278,7 @@ public class ELSwift {
             }
             
             ELSwift.group.stateUpdateHandler = { (newState) in
-                if( isDebug ) { print("Group entered state \(String(describing: newState))") }
+                if( isDebug ) { print("ELSwift.initialize() Group entered state \(String(describing: newState))") }
                 switch newState {
                 case .ready:
                     // if( isDebug ) { print("ready") }
@@ -289,22 +289,22 @@ public class ELSwift {
                     
                     // if( isDebug ) { print("send...UDP") }
                     ELSwift.group.send(content: groupSendContent) { (error)  in
-                        if( isDebug ) { print("Send complete with error \(String(describing: error))") }
+                        if( isDebug ) { print("ELSwift.initialize() Send complete with error \(String(describing: error))") }
                     }
 
                 case .waiting(let error):
-                    if( isDebug ) { print("waiting") }
+                    if( isDebug ) { print("ELSwift.initialize() waiting") }
                     if( isDebug ) { print(error) }
                 case .setup:
-                    if( isDebug ) { print("setup") }
+                    if( isDebug ) { print("ELSwift.initialize() setup") }
                 case .cancelled:
-                    if( isDebug ) { print("cancelled") }
+                    if( isDebug ) { print("ELSwift.initialize() cancelled") }
                 case .failed:
-                    if( isDebug ) { print("failed") }
+                    if( isDebug ) { print("ELSwift.initialize() failed") }
                     //case .preparing:
                     //    if( isDebug ) { print("preparing") }
                 default:
-                    if( isDebug ) { print("default") }
+                    if( isDebug ) { print("ELSwift.initialize() default") }
                 }
             }
             
@@ -360,6 +360,7 @@ public class ELSwift {
     }
     
     public static func IsReady() -> Bool {
+        if( isDebug ) { print("ELSwift.isReady()") }
         return ELSwift.isReady
     }
     
@@ -479,7 +480,7 @@ public class ELSwift {
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if ( error != nil ) {
-                print("sendBase() error: \(String(describing: error))")
+                print("Error!! ELSwift.sendBase() error: \(String(describing: error))")
             }else{
                 // if( isDebug ) { print("sendBase() 送信完了") }
                 socket.cancel()  // 送信したらソケット閉じる
@@ -500,7 +501,7 @@ public class ELSwift {
             case .cancelled: break
             case .preparing: break
             @unknown default:
-                fatalError("Illegal state")
+                fatalError("ELSwift.sendBase() Illegal state")
             }
         }
         
@@ -610,7 +611,9 @@ public class ELSwift {
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
         if( isDebug ) { print("<= ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
-            print("ELSwift.sendBaseMulti(Data) Send complete with error \(String(describing: error))")
+            if( error != nil ) {
+                print("Error!! ELSwift.sendBaseMulti(Data) Send complete with error: \(String(describing: error))")
+            }
         }
     }
     
@@ -619,7 +622,9 @@ public class ELSwift {
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            print("ELSwift.sendBaseMulti([UInt8]) Send complete with error \(String(describing: error))")
+            if( error != nil ) {
+                print("Error!! ELSwift.sendBaseMulti([UInt8]) Send complete with error: \(String(describing: error))")
+            }
         }
     }
     
@@ -672,7 +677,9 @@ public class ELSwift {
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
-            print("ELSwift.search() Send complete with error \(String(describing: error))")
+            if( error != nil ) {
+                print("Error!! ELSwift.search() Send complete with error: \(String(describing: error))")
+            }
         }
     }
     
@@ -730,16 +737,16 @@ public class ELSwift {
         var success:Bool = true
         var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
-        print( "Recv DETAILs:" )
-        ELSwift.printDetails(els.DETAILs)
+        // print( "Recv DETAILs:" )
+        // ELSwift.printDetails(els.DETAILs)
         for ( epc, _ ) in els.DETAILs {  // key=epc, value=edt
             if( ELSwift.replyGetDetail_sub( els, dev_details, epc ) ) {
                 retDetailsArray.append( epc )
                 retDetailsArray.append( UInt8(dev_details[els.DEOJ]![epc]!.count) )
                 retDetailsArray += dev_details[els.DEOJ]![epc]!
-                print( "retDetails:", retDetailsArray )
+                // print( "retDetails:", retDetailsArray )
             }else{
-                print( "failed:", ELSwift.printUInt8Array_String(els.DEOJ), ELSwift.toHexString(epc) )
+                // print( "failed:", ELSwift.printUInt8Array_String(els.DEOJ), ELSwift.toHexString(epc) )
                 retDetailsArray.append( epc )  // epcは文字列なので
                 retDetailsArray.append( 0x00 )
                 success = false
@@ -757,13 +764,13 @@ public class ELSwift {
     // 上記のサブルーチン
     public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:T_OBJs, _ epc:UInt8) -> Bool {
         guard let obj = dev_details[els.DEOJ] else { // EOJそのものがあるか？
-            print( "failed reason: EOJ is not found.", ELSwift.printUInt8Array_String(els.DEOJ) )
+            print( "Warning! ELSwift.replyGetDetail() error: EOJ is not found.", ELSwift.printUInt8Array_String(els.DEOJ) )
             return false
         }
         
         // console.log( dev_details[els.DEOJ], els.DEOJ, epc );
         if ( obj[epc] == nil || obj[epc] == [] ) { // EOJはあるが、EPCが無い、または空
-            print( "failed reason: EPC is not found or empty.", ELSwift.toHexString(epc) )
+            print( "Warning! ELSwift.replyGetDetail() error: EPC is not found or empty.", ELSwift.toHexString(epc) )
             return false
         }
         return true  // OK
@@ -1006,7 +1013,7 @@ public class ELSwift {
         do{
             // 最低限のELパケットになってない
             if( bytes.count < 14 ) {
-                print( "ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
+                print( "Error!! ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
                 ELSwift.printUInt8Array( bytes )
                 throw ELError.BadReceivedData
             }
@@ -1399,13 +1406,13 @@ public class ELSwift {
             
             // 機器オブジェクトに関してはユーザー関数に任す
             if( isDebug ) {
-                print("-- ELSwift.userFunc --", rAddress)
+                print("---- ELSwift.userFunc rAddress:", rAddress, "----")
                 // ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( isDebug ) {
-                print("-- Error: ELSwift.userFunc --", rAddress, content!, error) }
+                print("Error!! ELSwift.userFunc rAddress:", rAddress, content!, error, "----") }
             // ELSwift.userFunc!(rAddress, nil, error)
         }
     }
@@ -1446,7 +1453,7 @@ public class ELSwift {
                  */
             }
         } catch {
-            print("ELSwift.renewFacilities() error:", error)
+            print("Error!! ELSwift.renewFacilities() error:", error)
             // console.dir(e);
             throw error;
         }
