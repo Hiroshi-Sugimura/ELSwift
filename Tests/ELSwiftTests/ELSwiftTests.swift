@@ -313,19 +313,19 @@ final class ELSwiftTests: XCTestCase {
         print("--- show ---")
 
         print("-- printUInt8Array")
-        try ELSwift.printUInt8Array( [0x01, 0x02, 0x03, 0x10, 0x11, 0xa0, 0xf1, 0xf2] )
+        ELSwift.printUInt8Array( [0x01, 0x02, 0x03, 0x10, 0x11, 0xa0, 0xf1, 0xf2] )
         
         print("-- printPDCEDT")
-        try ELSwift.printPDCEDT( [0x02, 0xaa, 0xbb] )
+        ELSwift.printPDCEDT( [0x02, 0xaa, 0xbb] )
         
         print("-- printDetails")
-        try ELSwift.printDetails( d )
+        ELSwift.printDetails( d )
         
         print("-- printEL_STRUCTURE")
-        try ELSwift.printEL_STRUCTURE( f )
+        ELSwift.printEL_STRUCTURE( f )
 
         print("-- printFacilities")
-        try ELSwift.printFacilities()
+        ELSwift.printFacilities()
 
         
         //////////////////////////////////////////////////////////////////////

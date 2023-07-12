@@ -69,12 +69,8 @@ class CSendTask: Operation {
     init(_ _address: String, _ _els: EL_STRUCTURE) {
         self.address = _address
         self.els = _els
-        do{
             print("CSendTask.init()")
-            try ELSwift.printEL_STRUCTURE(els)
-        }catch{
-            print("CSendTask.init() error:", error)
-        }
+            ELSwift.printEL_STRUCTURE(els)
     }
     
     override func main () {
@@ -403,20 +399,25 @@ public class ELSwift {
     //---------------------------------------
     // 表示系
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
-    public static func printUInt8Array(_ array: [UInt8]) throws -> Void {
+    public static func printUInt8Array(_ array: [UInt8]) -> Void {
         print("== ELSwift.printUInt8Array()")
         let p = array.map{ String( format: "%02X", $0) }
         print( p )
     }
-    
-    public static func printPDCEDT(_ pdcedt:T_PDCEDT) throws -> Void {
+
+    public static func printUInt8Array_String(_ array: [UInt8]) -> String {
+        let p = array.map{ String( format: "%02X", $0) }
+        return  p.joined()
+    }
+
+    public static func printPDCEDT(_ pdcedt:T_PDCEDT) -> Void {
         print("== ELSwift.printPDCEDT()")
         let pdc = String( format: "%02X", pdcedt[0] )
         let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
         print( "PDC:\(pdc), EDT:\(edt)" )
     }
     
-    public static func printDetails(_ details:T_DETAILs) throws -> Void {
+    public static func printDetails(_ details:T_DETAILs) -> Void {
         print("== ELSwift.printDetails()")
         for( epc, edt ) in details {
             let pdc = String( format: "%02X", edt.count )
@@ -426,7 +427,7 @@ public class ELSwift {
         }
     }
     
-    public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) throws -> Void {
+    public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) -> Void {
         print("== ELSwift.pringEL_STRUCTURE()")
         let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
@@ -441,18 +442,18 @@ public class ELSwift {
         }
     }
     
-    public static func printFacilities() throws -> Void {
-        print("== ELSwift.printFacilities()")
+    public static func printFacilities() -> Void {
+        print("== ELSwift.printFacilities() ==")
         
         for (ip, objs) in ELSwift.facilities {
-            print("ip: \(ip)")
+            print("| ip: \(ip)")
             
             if let os = objs {
                 for (eoj, obj) in os {
-                    print("  eoj: \(eoj)")
+                    print("|-- eoj: " + ELSwift.printUInt8Array_String(eoj) )
                     
                     for (epc, edt) in obj {
-                        print("    \(epc) = \(String(describing: edt))")
+                        print("|---- " + ELSwift.toHexString(epc) + ": " + ELSwift.printUInt8Array_String(edt) )
                     }
                 }
             }
@@ -463,7 +464,7 @@ public class ELSwift {
     public static func sendBase(_ toip:String, _ array: [UInt8]) throws -> Void {
         if( isDebug ) {
             print("<- ELSwift.sendBase(Data) data:")
-            try ELSwift.printUInt8Array(array)
+            ELSwift.printUInt8Array(array)
         }
         
         let queue = DispatchQueue(label:"sendBase")
@@ -994,7 +995,7 @@ public class ELSwift {
             // 最低限のELパケットになってない
             if( bytes.count < 14 ) {
                 print( "ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
-                try ELSwift.printUInt8Array( bytes )
+                ELSwift.printUInt8Array( bytes )
                 throw ELError.BadReceivedData
             }
             
@@ -1184,7 +1185,7 @@ public class ELSwift {
             
             if( isDebug ) {
                 print("===== ELSwift.returner() =====")
-                try ELSwift.printEL_STRUCTURE(els)
+                ELSwift.printEL_STRUCTURE(els)
             }
             
             // Node profileに関してきちんと処理する
@@ -1286,7 +1287,7 @@ public class ELSwift {
                         print("Get[0ef0xx] : ")
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
                             print("Get[D6] : ")
-                            try ELSwift.printUInt8Array(array)
+                            ELSwift.printUInt8Array(array)
                             // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
                             if( array != [] ) {  // GET_SNAだと[]の時があるので排除
@@ -1309,7 +1310,7 @@ public class ELSwift {
                         if( array == [] ) {  // GET_SNAの時など、EDT = []の時がある
                             break
                         }
-                        try ELSwift.printUInt8Array(array)
+                        ELSwift.printUInt8Array(array)
                         var epcpdcedt:T_EPCPDCEDT = []
                         let num:Int = Int( array[0] )
                         var i = 0
@@ -1362,7 +1363,7 @@ public class ELSwift {
                                 ELSwift.getPropertyMaps( rAddress, obj )
                                 if( isDebug ) {
                                     print("-> ELSwift.INF rAddress:", rAddress)
-                                    try ELSwift.printUInt8Array(obj)
+                                    ELSwift.printUInt8Array(obj)
                                 }
                                 
                                 instNum -= 1
@@ -1385,7 +1386,7 @@ public class ELSwift {
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
                 if( isDebug ) {
                     print("-> ELSwift.INF rAddress:", rAddress)
-                    try ELSwift.printEL_STRUCTURE(els)
+                    ELSwift.printEL_STRUCTURE(els)
                 }
                 try ELSwift.renewFacilities(rAddress, els)
             }
@@ -1393,7 +1394,7 @@ public class ELSwift {
             // 機器オブジェクトに関してはユーザー関数に任す
             if( isDebug ) {
                 print("-> ELSwift.userFunc", rAddress)
-                try ELSwift.printEL_STRUCTURE(els)
+                ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
