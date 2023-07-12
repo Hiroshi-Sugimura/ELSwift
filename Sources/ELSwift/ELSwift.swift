@@ -739,7 +739,7 @@ public class ELSwift {
                 retDetailsArray += dev_details[els.DEOJ]![epc]!
                 print( "retDetails:", retDetailsArray )
             }else{
-                print( "failed:", els.DEOJ, ELSwift.toHexString(epc) )
+                print( "failed:", ELSwift.printUInt8Array_String(els.DEOJ), ELSwift.toHexString(epc) )
                 retDetailsArray.append( epc )  // epcは文字列なので
                 retDetailsArray.append( 0x00 )
                 success = false
@@ -757,14 +757,16 @@ public class ELSwift {
     // 上記のサブルーチン
     public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:T_OBJs, _ epc:UInt8) -> Bool {
         guard let obj = dev_details[els.DEOJ] else { // EOJそのものがあるか？
+            print( "failed reason: EOJ is not found.", ELSwift.printUInt8Array_String(els.DEOJ) )
             return false
         }
         
         // console.log( dev_details[els.DEOJ], els.DEOJ, epc );
-        if (obj[epc] == nil ) { // EOJは存在し、EPCも持っている
+        if ( obj[epc] == nil || obj[epc] == [] ) { // EOJはあるが、EPCが無い、または空
+            print( "failed reason: EPC is not found or empty.", ELSwift.toHexString(epc) )
             return false
         }
-        return false  // EOJはなある、EPCはない
+        return true  // OK
     }
 
     // dev_detailのSetに対して複数OPCにも対応して返答する
@@ -1397,13 +1399,13 @@ public class ELSwift {
             
             // 機器オブジェクトに関してはユーザー関数に任す
             if( isDebug ) {
-                print("-> ELSwift.userFunc", rAddress)
+                print("-- ELSwift.userFunc --", rAddress)
                 // ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( isDebug ) {
-                print("-> Error: ELSwift.userFunc", rAddress, content!, error) }
+                print("-- Error: ELSwift.userFunc --", rAddress, content!, error) }
             // ELSwift.userFunc!(rAddress, nil, error)
         }
     }
