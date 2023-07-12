@@ -176,21 +176,41 @@ public class ELSwift {
     public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
-            ipVer = option?.ipVer ?? 0
-            
-            
-            // send queue
-            sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
-            sendQueue.maxConcurrentOperationCount = 1
-            sendQueue.qualityOfService = .userInitiated
-            
+            if( isDebug ) { print("ELSwift.init()") }
+
             // 正しいオブジェクトリストのチェック
             if( 1 < objList.count && objList.count % 3 != 0 ) {
                 print("ELSwift.initialize objList is invalid.")
                 return
             }
-            
-            if( isDebug ) { print("ELSwift.init()") }
+
+            // 初期設定値
+            ipVer = option?.ipVer ?? 0
+           
+            // send queue
+            sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
+            sendQueue.maxConcurrentOperationCount = 1
+            sendQueue.qualityOfService = .userInitiated
+
+            // 自分のプロパティリスト（初期値はコントローラとして設定している）
+            // super
+            Node_details[0x88] = [0x42] // Fault status, get
+            Node_details[0x8a] = [0x00, 0x00, 0x77] // maker code, manufacturer code, kait = 00 00 77, get
+            Node_details[0x8b] = [0x00, 0x00, 0x02] // business facility code, homeele = 00 00 02, get
+            Node_details[0x9d] = [0x02, 0x80, 0xd5] // inf map, 1 Byte目は個数, get
+            Node_details[0x9e] = [0x01, 0xbf]       // set map, 1 Byte目は個数, get
+            Node_details[0x9f] = [0x0f, 0x80, 0x82, 0x83, 0x88, 0x8a, 0x8b, 0x9d, 0x9e, 0x9f, 0xbf, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数, get
+            // detail
+            Node_details[0x80] = [0x30] // 動作状態, get, inf
+            Node_details[0x82] = [0x01, 0x0d, 0x01, 0x00] // EL version, 1.13, get
+            Node_details[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] // identifier, initialize時に、mac addressできちんとユニークの値にセットとよい, get
+            Node_details[0xbf] = [0x80, 0x00] // 個体識別情報, Unique identifier data
+            Node_details[0xd3] = [0x00, 0x00, 0x01]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
+            Node_details[0xd4] = [0x00, 0x02]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, get
+            Node_details[0xd5] = []    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算, anno
+            Node_details[0xd6] = []    // 自ノードインスタンスリストS, initialize時にuser項目から自動計算, get
+            Node_details[0xd7] = []     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get
+
 
             // 自分のIPを取得したいけど、どうやるんだか謎。
             // 下記でinterfaceリストまでは取れる
@@ -446,14 +466,14 @@ public class ELSwift {
         print("== ELSwift.printFacilities() ==")
         
         for (ip, objs) in ELSwift.facilities {
-            print("| ip: \(ip)")
+            print("- ip: \(ip)")
             
             if let os = objs {
                 for (eoj, obj) in os {
-                    print("|-- eoj: " + ELSwift.printUInt8Array_String(eoj) )
+                    print("  - eoj: " + ELSwift.printUInt8Array_String(eoj) )
                     
                     for (epc, edt) in obj {
-                        print("|---- " + ELSwift.toHexString(epc) + ": " + ELSwift.printUInt8Array_String(edt) )
+                        print("    - " + ELSwift.toHexString(epc) + ": " + ELSwift.printUInt8Array_String(edt) )
                     }
                 }
             }
