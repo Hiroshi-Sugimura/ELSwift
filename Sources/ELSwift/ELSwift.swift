@@ -138,7 +138,7 @@ public class ELSwift {
     public static let MULTI_IP: String = "224.0.23.0"
     public static let MultiIP: String = "224.0.23.0"
     
-    public static let NODE_PROFILE: [UInt8] = [0x0e, 0xf0]
+    public static let NODE_PROFILE_CLASS: [UInt8] = [0x0e, 0xf0]
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
     
     public static var facilities: Dictionary<String, T_OBJs? > = Dictionary<String, T_OBJs? >()
@@ -167,7 +167,7 @@ public class ELSwift {
     static var ipVer: Int = 0 // 0:no spec, 4:ipVer=4, 6:ipVer=6
     
     static let sendQueue = OperationQueue()
-
+    
     /// - Parameters:
     ///   - objList:
     ///   - callback:
@@ -177,35 +177,35 @@ public class ELSwift {
         do{
             isDebug = option?.debug ?? false
             if( isDebug ) { print("ELSwift.init()") }
-
+            
             // 正しいオブジェクトリストのチェック
             if( 1 < objList.count && objList.count % 3 != 0 ) {
                 print("ELSwift.initialize objList is invalid.")
                 return
             }
-
+            
             // 初期設定値
             ipVer = option?.ipVer ?? 0
-           
+            
             // send queue
             sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
-
-
+            
+            
             // 自分のIPを取得したいけど、どうやるんだか謎。
             // 下記でinterfaceリストまでは取れる
             NetworkMonitor.monitor.pathUpdateHandler = { path in
-                           if path.status == .satisfied {
-                                // print("connection successful")
-                                NetworkMonitor.connection = true
-                               // print( String(describing: path.availableInterfaces) )
-                          } else {
-                                // print("no connection")
-                                NetworkMonitor.connection = false
-                                // respond to lack of connection here
-                           }
-                      }
+                if path.status == .satisfied {
+                    // print("connection successful")
+                    NetworkMonitor.connection = true
+                    // print( String(describing: path.availableInterfaces) )
+                } else {
+                    // print("no connection")
+                    NetworkMonitor.connection = false
+                    // respond to lack of connection here
+                }
+            }
             let queue2 = DispatchQueue(label: "Monitor")
             NetworkMonitor.monitor.start(queue: queue2)
             
@@ -291,7 +291,7 @@ public class ELSwift {
                     ELSwift.group.send(content: groupSendContent) { (error)  in
                         if( isDebug ) { print("ELSwift.initialize() Send complete with error \(String(describing: error))") }
                     }
-
+                    
                 case .waiting(let error):
                     if( isDebug ) { print("ELSwift.initialize() waiting") }
                     if( isDebug ) { print(error) }
@@ -321,9 +321,9 @@ public class ELSwift {
                 let end = i * 3 + 1
                 classes += Array( objList[ begin ... end ] )
             }
-
+            
             EL_cls = classes
-
+            
             // 自分のプロパティリスト（初期値はコントローラとして設定している）
             // super
             Node_details[0x88] = [0x42] // Fault status, get
@@ -364,7 +364,7 @@ public class ELSwift {
         return ELSwift.isReady
     }
     
-        
+    
     public static func increaseTID() {
         // TIDの調整
         var carry = 0; // 繰り上がり
@@ -390,12 +390,12 @@ public class ELSwift {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
             if( isDebug ) { print("ELSwift.receive() receiveMessage") }
             //if let data = data {
-                // let receiveData = [UInt8](data)
-                // if( isDebug ) { print(receiveData) }
-                // if( isDebug ) { print(flag) }
-                if(flag == false) {
-                    ELSwift.receive(nWConnection: nWConnection)
-                }
+            // let receiveData = [UInt8](data)
+            // if( isDebug ) { print(receiveData) }
+            // if( isDebug ) { print(flag) }
+            if(flag == false) {
+                ELSwift.receive(nWConnection: nWConnection)
+            }
             //}
             //else {
             //    if( isDebug ) { print("ELSwift.receive() error: receiveMessage data nil") }
@@ -411,12 +411,12 @@ public class ELSwift {
         let p = array.map{ String( format: "%02X", $0) }
         print( p )
     }
-
+    
     public static func printUInt8Array_String(_ array: [UInt8]) -> String {
         let p = array.map{ String( format: "%02X", $0) }
         return  p.joined()
     }
-
+    
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) -> Void {
         // print("== ELSwift.printPDCEDT()")
         let pdc = String( format: "%02X", pdcedt[0] )
@@ -602,7 +602,7 @@ public class ELSwift {
         if( isDebug ) { print("<- ELSwift.sendELS(els)") }
         // TIDの調整
         ELSwift.increaseTID()
-
+        
         // データができたので送信する
         try ELSwift.sendDetails(ip, els.SEOJ, els.DEOJ, els.ESV, els.DETAILs);
     }
@@ -712,24 +712,24 @@ public class ELSwift {
     // dev_details の形式で自分のEPC状況を渡すと、その状況を返答する
     // 例えば下記に001101(温度センサ)の例を示す
     /*
-    dev_details: {
-        [0x00, 0x11, 0x01]: {
-            // super
-            0x80: [0x30], // 動作状態, on, get, inf
-            0x81: [0x0f], // 設置場所, set, get, inf
-            0x82: [0x00, 0x00, 0x50, 0x01],  // spec version, P. rev1, get
-            0x83: [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06], // identifier, get
-            0x88: [0x42], // 異常状態, 0x42 = 異常無, get
-            0x8a: [0x00, 0x00, 0x77],  // maker code, kait, get
-            0x9d: [0x02, 0x80, 0x81],  // inf map, 1 Byte目は個数, get
-            0x9e: [0x01, 0x81],  // set map, 1 Byte目は個数, get
-            0x9f: [0x0a, 0x80, 0x81, 0x82, 0x83, 0x88, 0x8a, 0x9d, 0x9e, 0x9f, 0xe0], // get map, 1 Byte目は個数, get
-            // detail
-            0xe0: [0x00, 0xdc]  // 温度計測値, get
-        }
-    }
-    */
-
+     dev_details: {
+     [0x00, 0x11, 0x01]: {
+     // super
+     0x80: [0x30], // 動作状態, on, get, inf
+     0x81: [0x0f], // 設置場所, set, get, inf
+     0x82: [0x00, 0x00, 0x50, 0x01],  // spec version, P. rev1, get
+     0x83: [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06], // identifier, get
+     0x88: [0x42], // 異常状態, 0x42 = 異常無, get
+     0x8a: [0x00, 0x00, 0x77],  // maker code, kait, get
+     0x9d: [0x02, 0x80, 0x81],  // inf map, 1 Byte目は個数, get
+     0x9e: [0x01, 0x81],  // set map, 1 Byte目は個数, get
+     0x9f: [0x0a, 0x80, 0x81, 0x82, 0x83, 0x88, 0x8a, 0x9d, 0x9e, 0x9f, 0xe0], // get map, 1 Byte目は個数, get
+     // detail
+     0xe0: [0x00, 0xdc]  // 温度計測値, get
+     }
+     }
+     */
+    
     // dev_detailのGetに対して複数OPCにも対応して返答する
     // rAddress, elsは受信データ, dev_detailsは手持ちデータ
     // 受信したelsを見ながら、手持ちデータを参照してrAddressへ適切に返信する
@@ -753,7 +753,7 @@ public class ELSwift {
             }
             ret_opc += 1
         }
-
+        
         let ret_esv:UInt8 = success ? 0x72 : 0x52  // 一つでも失敗したらGET_SNA
         let el_base:[UInt8] = [(UInt8)(0x10), (UInt8)(0x81)] + els.TID + els.DEOJ + els.SEOJ
         let arr:[UInt8] = el_base + [ret_esv] + [ret_opc] + retDetailsArray
@@ -775,7 +775,7 @@ public class ELSwift {
         }
         return true  // OK
     }
-
+    
     // dev_detailのSetに対して複数OPCにも対応して返答する
     // ただしEPC毎の設定値に関して基本はノーチェックなので注意すべし
     // EPC毎の設定値チェックや、INF処理に関しては下記の replySetDetail_sub にて実施
@@ -787,7 +787,7 @@ public class ELSwift {
         if dev_details[els.DEOJ] != nil { // EOJそのものがあるか？
             return
         }
-
+        
         var success:Bool = true
         var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
@@ -805,9 +805,9 @@ public class ELSwift {
             }
             ret_opc += 1
         }
-
+        
         if( els.ESV == ELSwift.SETI ) { return }  // SetIなら返却なし、sub関数でSet処理をやっているのでここで判定
-
+        
         // SetCは SetC_ResかSetC_SNAを返す
         let ret_esv:UInt8 = success ? 0x71 : 0x5  // 一つでも失敗したらSETC_SNA
         let el_base:[UInt8] = [(UInt8)(0x10), (UInt8)(0x81)] + els.TID + els.DEOJ + els.SEOJ
@@ -824,10 +824,10 @@ public class ELSwift {
         }
         
         var ret:Bool = false
-       
+        
         
         switch( Array(els.DEOJ[0...1]) ) {
-        case ELSwift.NODE_PROFILE: // ノードプロファイルはsetするものがbfだけ
+        case ELSwift.NODE_PROFILE_CLASS: // ノードプロファイルはsetするものがbfだけ
             switch( epc ) {
             case 0xbf: // 個体識別番号, 最上位1bitは変化させてはいけない。
                 let ea = edt;
@@ -924,10 +924,10 @@ public class ELSwift {
                 ret = false  // EOJはなある、EPCはない
             }else{
                 ret = true
-               
+                
             }
         }
-
+        
         return ret
     }
     
@@ -938,65 +938,65 @@ public class ELSwift {
     
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ epcpdcedt:T_EPCPDCEDT ) throws -> T_DETAILs {
-            var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
+        var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
+        
+        var now:Int = 0  // 現在のIndex
+        var epc:UInt8 = 0
+        var pdc:UInt8 = 0
+        
+        // OPCループ
+        for _ in (0 ..< opc ) {
+            // EPC（機能）
+            epc = epcpdcedt[now]
+            now += 1
             
-            var now:Int = 0  // 現在のIndex
-            var epc:UInt8 = 0
-            var pdc:UInt8 = 0
+            // PDC（EDTのバイト数）
+            pdc = epcpdcedt[now]
+            now += 1
             
-            // OPCループ
-            for _ in (0 ..< opc ) {
-                // EPC（機能）
-                epc = epcpdcedt[now]
-                now += 1
+            var edt:[UInt8] = []  // edtは初期化しておく
+            
+            // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
+            if( pdc == 0 ) {
+                ret[ epc ] = [] // 本当はnilを入れたい
                 
-                // PDC（EDTのバイト数）
-                pdc = epcpdcedt[now]
-                now += 1
-                
-                var edt:[UInt8] = []  // edtは初期化しておく
-                
-                // getの時は pdcが0なのでなにもしない，0でなければ値が入っている
-                if( pdc == 0 ) {
-                    ret[ epc ] = [] // 本当はnilを入れたい
-
-                } else {
-                    // property mapだけEDT[0] != バイト数なので別処理
-                    if( epc == 0x9d || epc == 0x9e || epc == 0x9f ) {
-                        if( pdc >= 17) { // プロパティの数が16以上の場合（プロパティカウンタ含めてPDC17以上）は format 2
-                            // 0byte=epc, 2byte=pdc, 4byte=edt
-                            for _ in 0 ..< pdc {
-                                // 登録
-                                edt.append( epcpdcedt[now] )
-                                now += 1
-                            }
-                            ret[ epc ] = try ELSwift.parseMapForm2(edt)
-                            // return ret;
-                        }else{
-                            // format 2でなければ以下と同じ形式で解析可能
-                            for _ in 0 ..< pdc {
-                                // 登録
-                                edt.append( epcpdcedt[now] )
-                                now += 1
-                            }
-                            // console.log('epc:', EL.toHexString(epc), 'edt:', EL.bytesToString(edt) );
-                            ret[ epc ] = edt
-                        }
-                    }else{
-                        // PDCループ
-                        for _ in ( 0..<pdc ) {
+            } else {
+                // property mapだけEDT[0] != バイト数なので別処理
+                if( epc == 0x9d || epc == 0x9e || epc == 0x9f ) {
+                    if( pdc >= 17) { // プロパティの数が16以上の場合（プロパティカウンタ含めてPDC17以上）は format 2
+                        // 0byte=epc, 2byte=pdc, 4byte=edt
+                        for _ in 0 ..< pdc {
                             // 登録
-                            edt += [ epcpdcedt[now] ]
+                            edt.append( epcpdcedt[now] )
                             now += 1
                         }
-                        // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
+                        ret[ epc ] = try ELSwift.parseMapForm2(edt)
+                        // return ret;
+                    }else{
+                        // format 2でなければ以下と同じ形式で解析可能
+                        for _ in 0 ..< pdc {
+                            // 登録
+                            edt.append( epcpdcedt[now] )
+                            now += 1
+                        }
+                        // console.log('epc:', EL.toHexString(epc), 'edt:', EL.bytesToString(edt) );
                         ret[ epc ] = edt
                     }
+                }else{
+                    // PDCループ
+                    for _ in ( 0..<pdc ) {
+                        // 登録
+                        edt += [ epcpdcedt[now] ]
+                        now += 1
+                    }
+                    // if( isDebug ) { print("opc: \(opc), epc:\(epc), pdc:\(pdc), edt:\(edt)") }
+                    ret[ epc ] = edt
                 }
-                
-            }  // opcループ
+            }
             
-            return ret
+        }  // opcループ
+        
+        return ret
     }
     
     // Detailだけをparseする，内部で主に使う
@@ -1208,7 +1208,7 @@ public class ELSwift {
             }
             
             // Node profileに関してきちんと処理する
-            if ( Array(els.DEOJ[0..<2]) == ELSwift.NODE_PROFILE ) {
+            if ( Array(els.DEOJ[0..<2]) == ELSwift.NODE_PROFILE_CLASS ) {
                 els.DEOJ = ELSwift.NODE_PROFILE_OBJECT  // ここで0ef000, 0ef001, 0ef002の表記ゆれを統合する
                 
                 switch (els.ESV) {
@@ -1288,7 +1288,7 @@ public class ELSwift {
                         }
                     }
                     break
-
+                    
                 case ELSwift.GET_SNA, ELSwift.GET_RES: // 52, 72
                     // 52
                     // GET_SNAは複数EPC取得時に、一つでもエラーしたらSNAになるので、他EPCが取得成功している場合があるため無視してはいけない。
@@ -1302,7 +1302,7 @@ public class ELSwift {
                     // V1.1
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
-                    if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE)  {
+                    if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE_CLASS)  {
                         // print("Get[0ef0xx] : ")
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
                             // print("Get[D6] : ")
@@ -1342,10 +1342,10 @@ public class ELSwift {
                             i += 1
                         }
                         
-
+                        
                         let els:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, epcpdcedt:epcpdcedt)
                         sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
-
+                        
                         // old try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                     }
                     break
@@ -1406,14 +1406,15 @@ public class ELSwift {
             
             // 機器オブジェクトに関してはユーザー関数に任す
             if( isDebug ) {
-                print("---- ELSwift.userFunc rAddress:", rAddress, "----")
+                print("----- ELSwift.userFunc rAddress:", rAddress, "-----")
                 // ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( isDebug ) {
-                print("Error!! ELSwift.userFunc rAddress:", rAddress, content!, error, "----") }
-            // ELSwift.userFunc!(rAddress, nil, error)
+                print("Error!! ELSwift.userFunc rAddress:", rAddress, content!, error)
+            }
+            ELSwift.userFunc!(rAddress, nil, error)
         }
     }
     
