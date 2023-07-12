@@ -680,6 +680,9 @@ public class ELSwift {
     // 一度に一気に取得するとデバイス側が対応できないタイミングもあるようで，適当にwaitする。
     public static func getPropertyMaps(_ ip:String,_ eoj:[UInt8] )
     {
+        if( isDebug ) {
+            print("<- ELSwift.getPropertyMaps() rAddress:", ip, "obj:", ELSwift.printUInt8Array_String(eoj) )
+        }
         // プロファイルオブジェクトのときはプロパティマップももらうけど，識別番号ももらう
         if( eoj[0] == 0x0e && eoj[1] == 0xf0 ) {
             
@@ -736,7 +739,7 @@ public class ELSwift {
                 retDetailsArray += dev_details[els.DEOJ]![epc]!
                 print( "retDetails:", retDetailsArray )
             }else{
-                // console.log( 'failed:', els.DEOJ, epc )
+                print( "failed:", els.DEOJ, ELSwift.toHexString(epc) )
                 retDetailsArray.append( epc )  // epcは文字列なので
                 retDetailsArray.append( 0x00 )
                 success = false
@@ -1304,9 +1307,6 @@ public class ELSwift {
                                     let end:Int = i * 3 + 4
                                     let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                     ELSwift.getPropertyMaps( rAddress, obj )
-                                    if( isDebug ) {
-                                        print("-> ELSwift.GET_SNA, GET_RES rAddress:", rAddress, "obj:", ELSwift.printUInt8Array(obj))
-                                    }
                                 }
                             }
                         }
@@ -1342,16 +1342,19 @@ public class ELSwift {
                     break
                     
                 case ELSwift.INF:  // 0x73
+                    if( isDebug ) { print("-> ELSwift.INF rAddress:", rAddress, " obj: NodeProfileObject") }
                     // ECHONETネットワークで、新規デバイスが起動したのでプロパティもらいに行く
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
                         // ノードプロファイルオブジェクトのプロパティマップをもらう
                         ELSwift.getPropertyMaps( rAddress, ELSwift.NODE_PROFILE_OBJECT )
-                        if( isDebug ) { print("-> ELSwift.INF rAddress:", rAddress, " NodeProfileObject") }
                     }
                     break
                     
                 case ELSwift.INFC: // "74"
+                    if( isDebug ) {
+                        print("-> ELSwift.INFC rAddress:", rAddress, " obj: NodeProfileObject" )
+                    }
                     // ECHONET Lite Ver. 1.0以前の処理で利用していたフロー
                     // オブジェクトリストをもらったらそのオブジェクトのPropertyMapをもらいに行く
                     // autoGetPropertiesがfalseならやらない
@@ -1359,9 +1362,6 @@ public class ELSwift {
                         if let array:T_PDCEDT = els.DETAILs[0xd5] {
                             // ノードプロファイルオブジェクトのプロパティマップをもらう
                             ELSwift.getPropertyMaps( rAddress, ELSwift.NODE_PROFILE_OBJECT )
-                            if( isDebug ) {
-                                print("-> ELSwift.INFC rAddress:", rAddress, " obj:", ELSwift.NODE_PROFILE_OBJECT )
-                            }
                             
                             // console.log( "ELSwift.returner: get object list! PropertyMap req.")
                             var instNum:Int = Int( array[0] )
@@ -1370,11 +1370,6 @@ public class ELSwift {
                                 let end:Int = (instNum - 1) * 3 + 4
                                 let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                 ELSwift.getPropertyMaps( rAddress, obj )
-                                if( isDebug ) {
-                                    print("-> ELSwift.INF rAddress:", rAddress)
-                                    ELSwift.printUInt8Array(obj)
-                                }
-                                
                                 instNum -= 1
                             }
                         }
@@ -1393,10 +1388,10 @@ public class ELSwift {
             
             // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
             if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
-                if( isDebug ) {
-                    print("-> ELSwift.INF rAddress:", rAddress)
-                    ELSwift.printEL_STRUCTURE(els)
-                }
+                //if( isDebug ) {
+                //    print("-> ELSwift.INF rAddress:", rAddress)
+                //    ELSwift.printEL_STRUCTURE(els)
+                //}
                 try ELSwift.renewFacilities(rAddress, els)
             }
             
