@@ -406,7 +406,7 @@ public class ELSwift {
     // 表示系
     // let detail = elsv.DETAIL.map{ String($0, radix:16) }
     public static func printUInt8Array(_ array: [UInt8]) -> Void {
-        print("== ELSwift.printUInt8Array()")
+        // print("== ELSwift.printUInt8Array()")
         let p = array.map{ String( format: "%02X", $0) }
         print( p )
     }
@@ -417,14 +417,14 @@ public class ELSwift {
     }
 
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) -> Void {
-        print("== ELSwift.printPDCEDT()")
+        // print("== ELSwift.printPDCEDT()")
         let pdc = String( format: "%02X", pdcedt[0] )
         let edt = pdcedt[1...].map{ String( format: "%02X", $0) }
         print( "PDC:\(pdc), EDT:\(edt)" )
     }
     
     public static func printDetails(_ details:T_DETAILs) -> Void {
-        print("== ELSwift.printDetails()")
+        // print("== ELSwift.printDetails()")
         for( epc, edt ) in details {
             let pdc = String( format: "%02X", edt.count )
             let edt = edt.map{ String( format: "%02X", $0)}
@@ -434,7 +434,7 @@ public class ELSwift {
     }
     
     public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) -> Void {
-        print("== ELSwift.pringEL_STRUCTURE()")
+        // print("== ELSwift.pringEL_STRUCTURE()")
         let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
         let esv = String( format: "%02X", els.ESV)
@@ -449,7 +449,7 @@ public class ELSwift {
     }
     
     public static func printFacilities() -> Void {
-        print("== ELSwift.printFacilities() ==")
+        print("-- ELSwift.printFacilities() --")
         
         for (ip, objs) in ELSwift.facilities {
             print("- ip: \(ip)")
@@ -727,7 +727,8 @@ public class ELSwift {
         var success:Bool = true
         var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
-        print( "Recv DETAILs:", els.DETAILs )
+        print( "Recv DETAILs:" )
+        ELSwift.printDetails(els.DETAILs)
         for ( epc, _ ) in els.DETAILs {  // key=epc, value=edt
             if( ELSwift.replyGetDetail_sub( els, dev_details, epc ) ) {
                 retDetailsArray.append( epc )
@@ -1304,7 +1305,7 @@ public class ELSwift {
                                     let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                     ELSwift.getPropertyMaps( rAddress, obj )
                                     if( isDebug ) {
-                                        print("-> ELSwift.GET_SNA, GET_RES", rAddress, ELSwift.printUInt8Array(obj))
+                                        print("-> ELSwift.GET_SNA, GET_RES rAddress:", rAddress, "obj:", ELSwift.printUInt8Array(obj))
                                     }
                                 }
                             }
@@ -1402,13 +1403,13 @@ public class ELSwift {
             // 機器オブジェクトに関してはユーザー関数に任す
             if( isDebug ) {
                 print("-> ELSwift.userFunc", rAddress)
-                ELSwift.printEL_STRUCTURE(els)
+                // ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( isDebug ) {
                 print("-> Error: ELSwift.userFunc", rAddress, content!, error) }
-            ELSwift.userFunc!(rAddress, nil, error)
+            // ELSwift.userFunc!(rAddress, nil, error)
         }
     }
     
