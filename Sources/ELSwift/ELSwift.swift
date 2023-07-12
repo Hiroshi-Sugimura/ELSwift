@@ -69,8 +69,8 @@ class CSendTask: Operation {
     init(_ _address: String, _ _els: EL_STRUCTURE) {
         self.address = _address
         self.els = _els
-            print("CSendTask.init()")
-            ELSwift.printEL_STRUCTURE(els)
+        // print("CSendTask.init()")
+        // ELSwift.printEL_STRUCTURE(els)
     }
     
     override func main () {
@@ -727,13 +727,13 @@ public class ELSwift {
         var success:Bool = true
         var retDetailsArray:[UInt8] = []
         var ret_opc:UInt8 = 0
-        // console.log( 'Recv DETAILs:', els.DETAILs )
+        print( "Recv DETAILs:", els.DETAILs )
         for ( epc, _ ) in els.DETAILs {  // key=epc, value=edt
             if( ELSwift.replyGetDetail_sub( els, dev_details, epc ) ) {
                 retDetailsArray.append( epc )
                 retDetailsArray.append( UInt8(dev_details[els.DEOJ]![epc]!.count) )
                 retDetailsArray += dev_details[els.DEOJ]![epc]!
-                // console.log( 'retDetails:', retDetails )
+                print( "retDetails:", retDetailsArray )
             }else{
                 // console.log( 'failed:', els.DEOJ, epc )
                 retDetailsArray.append( epc )  // epcは文字列なので
@@ -1290,10 +1290,10 @@ public class ELSwift {
                     // d6のEDT表現が特殊，EDT1バイト目がインスタンス数になっている
                     // なお、d6にはNode profileは入っていない
                     if ( Array(els.SEOJ[0..<2]) == ELSwift.NODE_PROFILE)  {
-                        print("Get[0ef0xx] : ")
+                        // print("Get[0ef0xx] : ")
                         if let array:T_PDCEDT = els.DETAILs[0xd6] {
-                            print("Get[D6] : ")
-                            ELSwift.printUInt8Array(array)
+                            // print("Get[D6] : ")
+                            // ELSwift.printUInt8Array(array)
                             // console.log( "ELSwift.returner: get object list! PropertyMap req V1.0.")
                             // 自ノードインスタンスリストSに書いてあるオブジェクトのプロパティマップをもらう
                             if( array != [] ) {  // GET_SNAだと[]の時があるので排除
@@ -1303,7 +1303,9 @@ public class ELSwift {
                                     let end:Int = i * 3 + 4
                                     let obj:[UInt8] = Array( array[  begin ..< end  ] )
                                     ELSwift.getPropertyMaps( rAddress, obj )
-                                    if( isDebug ) { print("-> ELSwift.GET_SNA, GET_RES", rAddress, obj) }
+                                    if( isDebug ) {
+                                        print("-> ELSwift.GET_SNA, GET_RES", rAddress, ELSwift.printUInt8Array(obj))
+                                    }
                                 }
                             }
                         }
