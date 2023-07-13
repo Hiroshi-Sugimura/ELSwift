@@ -345,11 +345,11 @@ public class ELSwift {
             Node_details[0x82] = [0x01, 0x0d, 0x01, 0x00] // EL version, 1.13, get
             Node_details[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] // identifier, initialize時に、mac addressできちんとユニークの値にセットとよい, get
             Node_details[0xbf] = [0x80, 0x00] // 個体識別情報, Unique identifier data
-            Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
-            Node_details[0xd4] = [0x00, UInt8(EL_cls.count + 1)]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, D4はノードプロファイルをカウントする(+1), get
-            Node_details[0xd5] = [UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算 anno
+            Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count/3)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
+            Node_details[0xd4] = [0x00, UInt8(EL_cls.count/2 + 1)]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, D4はノードプロファイルをカウントする(+1), get
+            Node_details[0xd5] = [UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算 anno (3 Byteで1 objectなので3で割り算)
             Node_details[0xd6] = Node_details[0xd5]   // 自ノードインスタンスリストS, initialize時にuser項目から自動計算, get
-            Node_details[0xd7] = [ UInt8(EL_cls.count)] + EL_cls     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get
+            Node_details[0xd7] = [ UInt8(EL_cls.count/2)] + EL_cls     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get (2 Byteで1 classなので２で割り算)
             
             // 初期化終わったのでノードのINFをだす
             try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, Node_details[0xd5]! )
