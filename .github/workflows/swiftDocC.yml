@@ -17,15 +17,19 @@ jobs:
     steps:
     - uses: swift-actions/setup-swift@v1
     - name: Get swift version
-      run: swift --version # Swift 5.8
+      run: |
+        swift --version # Swift 5.8
+        pwd ./
+        ls -al
     - uses: actions/checkout@v3
     - name: build docc
       run: |
+        cd ELSwift
         swift package --allow-writing-to-directory ../docs generate-documentation \
         --target ELSwift \
         --disable-indexing \
         --transform-for-static-hosting \
-        --output-path ./docs
+        --output-path ../docs
     - uses: actions/upload-pages-artifact@v1
       with:
         path: docs
