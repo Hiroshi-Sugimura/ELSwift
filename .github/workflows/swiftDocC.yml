@@ -19,12 +19,11 @@ jobs:
     - name: Get swift version
       run: |
         swift --version # Swift 5.8
-        pwd ./
+        pwd ../
         ls -al
     - uses: actions/checkout@v3
     - name: build docc
       run: |
-        cd ELSwift
         swift package --allow-writing-to-directory ../docs generate-documentation \
         --target ELSwift \
         --disable-indexing \
