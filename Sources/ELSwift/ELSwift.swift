@@ -109,6 +109,7 @@ enum ELError: Error {
 
 //==============================================================================
 /// the main class for ELSwift, ECHONET Lite protocol
+/// ELSwift is available for only one object for an app. Multi object cannot exist.
 public class ELSwift {
     public static let networkType = "_networkplayground._udp."
     public static let networkDomain = "local"
@@ -168,16 +169,15 @@ public class ELSwift {
     
     static let sendQueue = OperationQueue()
     
+    /// ELSwift initializer
     /// - Parameters:
-    ///   - objList:
-    ///   - callback:
-    ///   - option:
+    ///   - objList: e.g.: [0x05, 0xff, 0x01]
+    ///   - callback:use's callback function, For receiving message, the callback is called.
+    ///   - option:options, nil or fill all.
     /// - Returns: Void
-    public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool?, ipVer:Int?)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
             isDebug = option?.debug ?? false
-            if( isDebug ) { print("ELSwift.init()") }
-            
             // 正しいオブジェクトリストのチェック
             if( 1 < objList.count && objList.count % 3 != 0 ) {
                 print("ELSwift.initialize objList is invalid.")
@@ -186,6 +186,14 @@ public class ELSwift {
             
             // 初期設定値
             ipVer = option?.ipVer ?? 0
+            autoGetProperties = option?.autoGetProperties ?? true
+            
+            if( isDebug ) {
+                print("===== ELSwift.init() =====")
+                print("ipVer:", ELSwift.ipVer)
+                print("autoGetProperties:", ELSwift.autoGetProperties)
+                print("debug:", ELSwift.isDebug)
+            }
             
             // send queue
             sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
