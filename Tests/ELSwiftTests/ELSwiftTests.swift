@@ -28,7 +28,7 @@ final class ELSwiftTests: XCTestCase {
                  }
                  }
                  */
-            }, option: (debug:true, ipVer:0) )
+            }, option: (debug:true, ipVer:0, autoGetProperties: true) )
             exp.fulfill()
         }catch{
             print("setUp error")
