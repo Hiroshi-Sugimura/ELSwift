@@ -1403,8 +1403,9 @@ public class ELSwift {
                 }
             }
             
-            // 受信状態から機器情報修正, GETとINFREQ，SET_RESは除く
-            if (els.ESV != ELSwift.GET && els.ESV != ELSwift.INF_REQ && els.ESV != ELSwift.SET_RES) {
+            // 受信状態から機器情報修正,下記の時のみ
+            // Get_Res, INF, INFC, INFC_Res, SetGet_Res
+            if (els.ESV == ELSwift.GET_RES || els.ESV == ELSwift.INF || els.ESV == ELSwift.INFC || els.ESV == ELSwift.INFC_RES || els.ESV == ELSwift.SETGET_RES) {
                 //if( isDebug ) {
                 //    print("-> ELSwift.INF rAddress:", rAddress)
                 //    ELSwift.printEL_STRUCTURE(els)
