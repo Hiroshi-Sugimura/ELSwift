@@ -25,6 +25,7 @@ $ swift test
 
 # Versions
 
+- 0.2.3 GET_SNAも更新してよいのでdebug
 - 0.2.2 facilities更新のdebug
 - 0.2.1 Swift-DocC対応していく。d7のdebug
 - 0.2.0 結構修正した。やっぱり0.1.0と互換性は無くなっていく
