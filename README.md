@@ -22,6 +22,11 @@ File > AddPackages... > 右上の[Search or Enter Package URL] にGithubのURL�
 テストしたいとき
 $ swift test
 
+# API Document
+
+- Swift-DocCにてアノテーションして、Github Actionsで自動生成しています。
+
+[ELSwift](https://hiroshi-sugimura.github.io/ELSwift/documentation/elswift/)
 
 # Versions
 
