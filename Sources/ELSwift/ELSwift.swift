@@ -362,17 +362,22 @@ public class ELSwift {
         
     }
     
+    
+    /// ELSwiftの通信終了
     public static func release () {
         if( isDebug ) { print("ELSwift.release()") }
         group.cancel()
     }
     
+    /// ELSwiftの通信しているか？初期化動作済みか？をチェックする
     public static func IsReady() -> Bool {
         if( isDebug ) { print("ELSwift.isReady()") }
         return ELSwift.isReady
     }
     
-    
+    /// 内部関数
+    /// 自動送信のTIDを１進める
+    /// 基本的には内部関数として動作することを念頭に設計
     public static func increaseTID() {
         // TIDの調整
         var carry = 0; // 繰り上がり
@@ -394,6 +399,8 @@ public class ELSwift {
     
     
     //---------------------------------------
+    /// 内部関数
+    /// 受信データ処理
     public static func receive(nWConnection:NWConnection) -> Void {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
             if( isDebug ) { print("ELSwift.receive() receiveMessage") }
@@ -411,20 +418,27 @@ public class ELSwift {
         })
     }
     
-    //---------------------------------------
-    // 表示系
-    // let detail = elsv.DETAIL.map{ String($0, radix:16) }
+    //--------------------------------------- 表示系
+    /// 表示系
+    /// [UInt8]を１６進数表示する
+    /// - Parameter array: 表示する[UInt8]
     public static func printUInt8Array(_ array: [UInt8]) -> Void {
-        // print("== ELSwift.printUInt8Array()")
         let p = array.map{ String( format: "%02X", $0) }
         print( p )
     }
     
+    /// 変換系
+    /// [UInt8]を１６進数表示するための文字列を取得する
+    /// - Parameter array: 文字列変換する[UInt8]
+    /// - Returns: 変換後の文字列
     public static func printUInt8Array_String(_ array: [UInt8]) -> String {
         let p = array.map{ String( format: "%02X", $0) }
         return  p.joined()
     }
     
+    /// 表示系
+    /// T_PDCEDT を１６進数でPDCとEDTで分けて表示する
+    /// - Parameter pdcedt: 表示するT_PDCEDT
     public static func printPDCEDT(_ pdcedt:T_PDCEDT) -> Void {
         // print("== ELSwift.printPDCEDT()")
         let pdc = String( format: "%02X", pdcedt[0] )
