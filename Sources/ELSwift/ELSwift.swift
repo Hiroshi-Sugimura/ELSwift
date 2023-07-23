@@ -11,10 +11,30 @@ import Network
 import SystemConfiguration
 
 //==============================================================================
+/// PDCのあとEDTがくる
+/// PDCは必ず1Byteなので PDC = T_PDCEDT[0]
+/// [EDT]は1Byteだけのプロパティでも配列でアクセス
 public typealias T_PDCEDT     = [UInt8]
+
+///EPC, PDC, EDT の順序
+///EPC, PDCは必ず1Byteなので EPC = T_EPCPDCEDT[0], PDC = T_EPCPDCEDT[1]
 public typealias T_EPCPDCEDT  = [UInt8]
+
+/// プロパティ郡を辞書として管理する
+/// キーはUInt8なので、規格書のEPCの値をそのまま使える
+/// T_DETAILs[0x80] = T_PDCEDT のようになる
 public typealias T_DETAILs = Dictionary<UInt8, T_PDCEDT>
+
+/// 複数オブジェクト郡を辞書として管理する
+/// キーは[UInt8]で、3Byteとし、EOJをそのまま利用する。Arrayのままキーとする。
+/// T_OBJs[ [0x05, 0xff, 0x01] ] = T_DETAILs のようになる
 public typealias T_OBJs    = Dictionary<[UInt8], T_DETAILs>   // [eoj]: T_DETAILs
+
+/// 複数デバイス郡を辞書として管理する
+/// キーはStringで、IPアドレスで管理する。
+/// T_DEVs[ "192.168.xx.xx" ] = T_OBJs のようになる
+/// 注意点として、同じデバイスでも複数IPを持つ場合があり、その場合この辞書からは複数デバイスに見える。
+/// きちんと管理するなら機器IDを取得して名寄せする必要がある。
 public typealias T_DEVs    = Dictionary<String, T_OBJs>   // "ip": T_OBJs
 
 
@@ -446,6 +466,9 @@ public class ELSwift {
         print( "PDC:\(pdc), EDT:\(edt)" )
     }
     
+    /// 表示系
+    /// T_DETAILsを16進数でEPC, PDC, EDTで分けて表示する
+    /// - Parameter details: 表示するT_DETAILs
     public static func printDetails(_ details:T_DETAILs) -> Void {
         // print("== ELSwift.printDetails()")
         for( epc, edt ) in details {
@@ -456,6 +479,9 @@ public class ELSwift {
         }
     }
     
+    /// 表示系
+    /// EL_STRUCTUREを表示する
+    /// - Parameter els: 表示するEL_STRUCTURE
     public static func printEL_STRUCTURE(_ els: EL_STRUCTURE) -> Void {
         // print("== ELSwift.pringEL_STRUCTURE()")
         let seoj = els.SEOJ.map{ String( format: "%02X", $0)}
@@ -471,6 +497,8 @@ public class ELSwift {
         }
     }
     
+    /// 表示系
+    /// コントローラとして、認識しているデバイス情報（facilities）を表示する
     public static func printFacilities() -> Void {
         print("-- ELSwift.printFacilities() --")
         
@@ -490,6 +518,11 @@ public class ELSwift {
     }
     
     //---------------------------------------
+    /// 送信系
+    /// 送信基礎(ほぼ内部関数的に利用)
+    /// - Parameter toip: String = 送信先IPアドレス
+    /// - Parameter array: [UInt8] = 送信データ
+    /// - Throws:Portが確保できないなどの例外
     public static func sendBase(_ toip:String, _ array: [UInt8]) throws -> Void {
         if( isDebug ) {
             print("<- ELSwift.sendBase(Data) data:")
@@ -530,19 +563,21 @@ public class ELSwift {
         socket.start(queue:queue)
     }
     
-    
+    /// 送信系
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
         if( isDebug ) { print("<- ELSwift.sendBase(Data)") }
         let msg:[UInt8] = [UInt8](data)
         try ELSwift.sendBase(toip, msg)
     }
     
+    /// 送信系
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
         if( isDebug ) { print("<- ELSwift.sendBase(UInt8)") }
         // 送信
         try ELSwift.sendBase(toip, array )
     }
     
+    /// 送信系
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
         if( isDebug ) { print("<- ELSwift.sendString()") }
         // 送信
@@ -550,6 +585,7 @@ public class ELSwift {
         try ELSwift.sendBase( toip, data )
     }
     
+    /// 送信系
     // sendOPC1( targetIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00])
     public static func sendOPC1(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
         if( isDebug ) { print("<- ELSwift.sendOPC1(...)") }
@@ -588,6 +624,7 @@ public class ELSwift {
         }
     }
     
+    /// 送信系
     public static func sendDetails(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv:UInt8, _ DETAILs:T_DETAILs ) throws -> Void {
         if( isDebug ) { print("<- ELSwift.sendDetails(...)") }
         // TIDの調整
@@ -618,7 +655,7 @@ public class ELSwift {
         try ELSwift.sendBase(ip, buffer);
     }
     
-    
+    /// 送信系
     // elsを送る、TIDはAuto
     public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
         if( isDebug ) { print("<- ELSwift.sendELS(els)") }
@@ -630,6 +667,7 @@ public class ELSwift {
     }
     
     //------------ multi send
+    /// 送信系
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
         if( isDebug ) { print("<= ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
@@ -639,6 +677,7 @@ public class ELSwift {
         }
     }
     
+    /// 送信系
     public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
         if( isDebug ) { print("<= ELSwift.sendBaseMulti(UInt8)") }
         // 送信
@@ -650,6 +689,7 @@ public class ELSwift {
         }
     }
     
+    /// 送信系
     public static func sendStringMulti(_ message: String) throws -> Void {
         if( isDebug ) { print("<= ELSwift.sendStringMulti()") }
         // 送信
@@ -657,6 +697,7 @@ public class ELSwift {
         try ELSwift.sendBaseMulti( data )
     }
     
+    /// 送信系
     public static func sendOPC1Multi(_ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
         if( isDebug ) { print("<= ELSwift.sendOPC1Multi()") }
         do{
@@ -693,6 +734,7 @@ public class ELSwift {
         }
     }
     
+    /// 送信系
     public static func search() throws -> Void {
         if( isDebug ) { print("<= ELSwift.search()") }
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
@@ -705,6 +747,7 @@ public class ELSwift {
         }
     }
     
+    /// 送信系
     // プロパティマップをすべて取得する
     // 一度に一気に取得するとデバイス側が対応できないタイミングもあるようで，適当にwaitする。
     public static func getPropertyMaps(_ ip:String,_ eoj:[UInt8] )
@@ -752,6 +795,7 @@ public class ELSwift {
      }
      */
     
+    /// 送信系
     // dev_detailのGetに対して複数OPCにも対応して返答する
     // rAddress, elsは受信データ, dev_detailsは手持ちデータ
     // 受信したelsを見ながら、手持ちデータを参照してrAddressへ適切に返信する
@@ -782,7 +826,7 @@ public class ELSwift {
         try ELSwift.sendArray( rAddress, arr )
     }
     
-    
+    /// 内部関数
     // 上記のサブルーチン
     public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:T_OBJs, _ epc:UInt8) -> Bool {
         guard let obj = dev_details[els.DEOJ] else { // EOJそのものがあるか？
@@ -798,6 +842,7 @@ public class ELSwift {
         return true  // OK
     }
     
+    /// 送信系
     // dev_detailのSetに対して複数OPCにも対応して返答する
     // ただしEPC毎の設定値に関して基本はノーチェックなので注意すべし
     // EPC毎の設定値チェックや、INF処理に関しては下記の replySetDetail_sub にて実施
@@ -837,7 +882,7 @@ public class ELSwift {
         try ELSwift.sendArray( rAddress, arr )
     }
     
-    
+    /// 内部関数
     // 上記のサブルーチン
     // dev_detailsはSetされる
     public static func replySetDetail_sub(_ rAddress:String, _ els:EL_STRUCTURE, _ dev_details: inout T_OBJs, _ epc:UInt8) throws -> Bool{
@@ -954,10 +999,11 @@ public class ELSwift {
     }
     
     
-    //////////////////////////////////////////////////////////////////////
+    //-------------------------------------------------------------------------------
     // 変換系
-    //////////////////////////////////////////////////////////////////////
+    //-------------------------------------------------------------------------------
     
+    /// 変換系
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8, _ epcpdcedt:T_EPCPDCEDT ) throws -> T_DETAILs {
         var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
@@ -1021,15 +1067,18 @@ public class ELSwift {
         return ret
     }
     
+    /// 変換系
     // Detailだけをparseする，内部で主に使う
     public static func parseDetail(_ opc:UInt8,_ str:String ) throws -> T_DETAILs {
         return try parseDetail( opc, ELSwift.toHexArray(str) )
     }
     
+    /// 変換系
     public static func parseDetail(_ opc:String,_ str:String ) throws -> T_DETAILs {
         return try parseDetail( ELSwift.toHexArray(opc)[0], ELSwift.toHexArray(str) )
     }
     
+    /// 変換系
     // バイトデータをいれるとEL_STRACTURE形式にする ok
     public static func parseBytes(_ bytes:[UInt8] ) throws -> EL_STRUCTURE {
         do{
@@ -1062,11 +1111,13 @@ public class ELSwift {
         
     }
     
+    /// 変換系
     // バイトデータをいれるとEL_STRACTURE形式にする ok
     public static func parseData(_ data:Data ) throws -> EL_STRUCTURE {
         try ELSwift.parseBytes( [UInt8](data) )
     }
     
+    /// 変換系
     // 16進数で表現された文字列をいれるとEL_STRUCTURE形式にする ok
     public static func parseString(_ str: String ) throws -> EL_STRUCTURE {
         var eldata: EL_STRUCTURE = EL_STRUCTURE()
@@ -1087,7 +1138,7 @@ public class ELSwift {
         return ( eldata )
     }
     
-    
+    /// 変換系
     // 文字列をいれるとELらしい切り方のStringを得る  ok
     public static func getSeparatedString_String(_ str: String ) throws -> String {
         var ret:String = ""
@@ -1102,7 +1153,7 @@ public class ELSwift {
         return ret
     }
     
-    
+    /// 変換系
     // 文字列操作が我慢できないので作る（1Byte文字固定）
     public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
         // pre-condition
@@ -1116,7 +1167,7 @@ public class ELSwift {
         return ret
     }
     
-    
+    /// 変換系
     // ELDATAをいれるとELらしい切り方のStringを得る
     public static func getSeparatedString_ELDATA(_ eldata : EL_STRUCTURE ) -> String {
         let ehd = eldata.EHD.map{ ELSwift.toHexString($0)}.joined()
@@ -1127,19 +1178,20 @@ public class ELSwift {
         return ( "\(ehd) \(tid) \(seoj) \(deoj) \(edata)" )
     }
     
-    
+    /// 変換系
     // EL_STRACTURE形式から配列へ
     public static func ELDATA2Array(_ eldata: EL_STRUCTURE ) throws -> [UInt8] {
         let ret = eldata.EHD + eldata.TID + eldata.SEOJ + eldata.DEOJ + eldata.EDATA
         return ret
     }
     
+    /// 変換系
     // 1バイトを文字列の16進表現へ（1Byteは必ず2文字にする） ok
     public static func toHexString(_ byte:UInt8 ) -> String {
         return ( String(format: "%02hhx", byte) )
     }
     
-    
+    /// 変換系
     // 16進表現の文字列を数値のバイト配列へ ok
     public static func toHexArray(_ str: String ) throws -> [UInt8] {
         var ret: [UInt8] = []
@@ -1161,7 +1213,7 @@ public class ELSwift {
         return ret
     }
     
-    
+    /// 変換系
     // バイト配列を文字列にかえる ok
     public static func bytesToString(_ bytes: [UInt8] ) throws -> String{
         var ret:String = ""
@@ -1172,7 +1224,7 @@ public class ELSwift {
         return ret
     }
     
-    
+    /// 変換系
     // parse Propaty Map Form 2
     // 16以上のプロパティ数の時，記述形式2，出力はForm1にすること, bitstr = EDT
     // bitstrは 数値配列[0x01, 0x30]のようなやつ、か文字列"0130"のようなやつを受け付ける
@@ -1195,6 +1247,7 @@ public class ELSwift {
         return ret
     }
     
+    /// 変換系
     // 文字列入力もできる
     public static func parseMapForm2(_ bitString:String ) throws -> [UInt8] {
         return try ELSwift.parseMapForm2( ELSwift.toHexArray(bitString) )
@@ -1202,9 +1255,11 @@ public class ELSwift {
     
     
     
-    //////////////////////////////////////////////////////////////////////
+    //----------------------------------------------------
     // EL受信
-    //////////////////////////////////////////////////////////////////////
+    //-----------------------------------------------------
+
+    /// 受信処理
     // ELの受信データを振り分ける
     public static func returner(_ rAddress: String, _ content: Data? ) {
         // 自IPを無視する設定があればチェックして無視する
@@ -1441,6 +1496,7 @@ public class ELSwift {
         }
     }
     
+    /// 内部関数
     // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
     public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) throws -> Void {
         do {
