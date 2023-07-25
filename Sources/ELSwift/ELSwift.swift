@@ -39,6 +39,7 @@ public typealias T_DEVs    = Dictionary<String, T_OBJs>   // "ip": T_OBJs
 
 
 //==============================================================================
+/// ECHONET Lite 解析構造体
 public struct EL_STRUCTURE : Equatable{
     public var EHD : [UInt8]
     public var TID : [UInt8]
