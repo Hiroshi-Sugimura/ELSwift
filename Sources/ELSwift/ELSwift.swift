@@ -1515,8 +1515,8 @@ public class ELSwift {
                 for ( epc, pdcedt ) in epcList {
                     // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避けるため、
                     // PDC 1byte, edt 1Byte以上の時に格納する
-                    if pdcedt.count <= 2 {
-                        ELSwift.facilities[address]?[seoj]?[epc] = pdcedt;
+                    if pdcedt.count >= 2 {
+                        ELSwift.facilities[address]?[seoj]?[epc] = pdcedt
                     }
                     
                     // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
