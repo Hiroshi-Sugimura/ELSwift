@@ -1063,7 +1063,12 @@ public class ELSwift {
     //-------------------------------------------------------------------------------
     
     /// 変換系
-    // Detailだけをparseする，内部で主に使う
+    /// Detailだけをparseする，内部で主に使う
+    /// - Parameters:
+    ///   - opc:
+    ///   - epcpdcedt:
+    /// - Returns: T_DETAILs
+    /// - Throws:
     public static func parseDetail(_ opc:UInt8, _ epcpdcedt:T_EPCPDCEDT ) throws -> T_DETAILs {
         var ret: T_DETAILs = T_DETAILs() // 戻り値用，連想配列
         
@@ -1580,11 +1585,11 @@ public class ELSwift {
                     ELSwift.facilities[address]?[seoj] = T_DETAILs()
                 }
                 
-                for ( epc, pdcedt ) in epcList {
+                for ( epc, edt ) in epcList {
                     // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避けるため、
                     // PDC 1byte, edt 1Byte以上の時に格納する
-                    if pdcedt.count >= 2 {
-                        ELSwift.facilities[address]?[seoj]?[epc] = pdcedt
+                    if pdcedt.count >= 1 {
+                        ELSwift.facilities[address]?[seoj]?[epc] = edt
                     }
                     
                     // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
