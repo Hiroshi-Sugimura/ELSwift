@@ -1588,7 +1588,7 @@ public class ELSwift {
                 for ( epc, edt ) in epcList {
                     // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避けるため、
                     // PDC 1byte, edt 1Byte以上の時に格納する
-                    if pdcedt.count >= 1 {
+                    if edt.count >= 1 {
                         ELSwift.facilities[address]?[seoj]?[epc] = edt
                     }
                     
