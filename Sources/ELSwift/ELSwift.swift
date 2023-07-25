@@ -41,16 +41,27 @@ public typealias T_DEVs    = Dictionary<String, T_OBJs>   // "ip": T_OBJs
 //==============================================================================
 /// ECHONET Lite 解析構造体
 public struct EL_STRUCTURE : Equatable{
+    /// EHD = [EHD1:UInt8,  EHD2:UInt8]
     public var EHD : [UInt8]
+    /// TID = [UInt8, UInt8, UInt8]
     public var TID : [UInt8]
+    /// SEOJ = [ClassGroup:UInt8, ClassCode:UInt8, InstanceNo.:UInt8]
     public var SEOJ : [UInt8]
+    /// SEOJ = [ClassGroup:UInt8, ClassCode:UInt8, InstanceNo.:UInt8]
     public var DEOJ : [UInt8]
-    public var EDATA: [UInt8]    // 下記はEDATAの詳細
+    /// EDATA = [ESV:UInt8, OPC:UInt8] + EPCPDCEDT
+    /// EDATAの詳細としてESV、OPC、EPCPDCEDTと分割したデータがある
+    public var EDATA: [UInt8]
+    /// ESV = ECHONET Service
     public var ESV : UInt8
+    /// OPC = [UInt8]
     public var OPC : UInt8
+    /// EPCPDCEDT = [EPC:UInt8, PDC:UInt8] + EDT:[UInt8]
     public var EPCPDCEDT : T_EPCPDCEDT
+    /// DETAILs = Dictionary型、 key = EPC:UInt8, value = [EDT:UInt8]
     public var DETAILs : T_DETAILs
     
+    /// 初期化
     init() {
         EHD = [0x10, 0x81]
         TID = [0x00, 0x00]
@@ -63,6 +74,14 @@ public struct EL_STRUCTURE : Equatable{
         DETAILs = T_DETAILs()
     }
     
+    /// 初期値付き初期化
+    /// - Parameters:
+    ///   - tid: Transaction ID
+    ///   - seoj: Send ECHONET Object
+    ///   - deoj: Dest ECHONET Object
+    ///   - esv: ECHONET Service
+    ///   - opc: parameter counter
+    ///   - epcpdcedt: EPC, PDC, EDT
     init(tid:[UInt8], seoj:[UInt8], deoj:[UInt8], esv:UInt8, opc:UInt8, epcpdcedt:T_EPCPDCEDT) {
         EHD = ELSwift.EHD
         TID = tid
@@ -82,11 +101,18 @@ public struct EL_STRUCTURE : Equatable{
 }
 
 //==============================================================================
-// timer queue用のOperation class
+/// timer queue用のOperation class
+/// 内部クラス
 class CSendTask: Operation {
+    /// 送信先IPアドレス
     let address: String
+    /// 送信するEL_STRUCTUREデータ
     let els: EL_STRUCTURE
     
+    /// 初期化
+    /// - Parameters:
+    ///   - _address: 送信先アドレス
+    ///   - _els: 送信データ
     init(_ _address: String, _ _els: EL_STRUCTURE) {
         self.address = _address
         self.els = _els
@@ -94,6 +120,7 @@ class CSendTask: Operation {
         // ELSwift.printEL_STRUCTURE(els)
     }
     
+    /// Queueで実行するタスク
     override func main () {
         if isCancelled {
             return
