@@ -30,6 +30,7 @@ $ swift test
 
 # Versions
 
+- 0.2.4 facilitiesのDictionaryとOptionalの関係を整理、GET_SNAの取れなかったプロパティの格納を避ける
 - 0.2.3 GET_SNAも更新してよいのでdebug
 - 0.2.2 facilities更新のdebug
 - 0.2.1 Swift-DocC対応していく。d7のdebug
