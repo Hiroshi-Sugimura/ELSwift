@@ -171,6 +171,9 @@ public class ELSwift {
     /// ECHONET用の受信ポート、3610で固定
     /// 内部プロパティ
     public static let PORT:UInt16 = 3610
+    /// ECHONET用の受信ポート、3610で固定
+    /// 内部プロパティ
+    public static let EL_port:Int = 3610
     /// ECHONET Liteのデータヘッダ、[0x10, 0x81]で固定
     /// 内部プロパティ
     public static let EHD:[UInt8] = [0x10, 0x81]
@@ -192,40 +195,59 @@ public class ELSwift {
     public static let INFC:UInt8 = 0x74
     public static let INFC_RES:UInt8 = 0x7a
     public static let SETGET_RES:UInt8 = 0x7e
-    public static let EL_port:Int = 3610
+
+    /// ECHONET用のマルチキャストIPv4アドレス、224.0.23.0で固定
     public static let EL_Multi:String = "224.0.23.0"
-    public static let EL_Multi6:String = "FF02::1"
+    /// ECHONET用のマルチキャストIPv4アドレス、224.0.23.0で固定
     public static let MULTI_IP: String = "224.0.23.0"
+    /// ECHONET用のマルチキャストIPv4アドレス、224.0.23.0で固定
     public static let MultiIP: String = "224.0.23.0"
-    
+    /// ECHONET用のマルチキャストIPv6アドレス、FF02::1で固定
+    public static let EL_Multi6:String = "FF02::1"
+
+    /// Class
     public static let NODE_PROFILE_CLASS: [UInt8] = [0x0e, 0xf0]
+    /// Object
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
-    
+    /// ECHONETネットワークで通信済みのデータを保持
     public static var facilities: Dictionary<String, T_OBJs> = Dictionary<String, T_OBJs>()
     
-    // user settings
+    /// 受信データの処理、ユーザが指定するコールバック関数
+    /// 内部プロパティ
     static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
     
     static var EL_obj: [UInt8]!
     static var EL_cls: [UInt8]!
     
+    /// 自身のプロパティ
     public static var Node_details:T_DETAILs = T_DETAILs()
     
-    public static var autoGetProperties: Bool = true
-    public static var autoGetDelay : Int = 1000
-    public static var autoGetWaitings : Int = 0
-    
+
+    ///送信時のTID自動設定用
+    ///内部プロパティ
     public static var tid:[UInt8] = [0x00, 0x01]
     
     // private static var listener: NWListener!
     private static var group: NWConnectionGroup!
     
+    /// 初期化し、送受信開始済み
+    /// ソフトウェアライフサイクルで利用するつもりだが未実装
     static var isReady: Bool = false
     public static var listening: Bool = true
+    /// 受信データ処理をマルチスレッドで実施するためのディスパッチキュー
     static var queue = DispatchQueue.global(qos: .userInitiated)
+
+    /// initialize option: デバッグログ出力設定
     static var isDebug: Bool = false
-    static var ipVer: Int = 0 // 0:no spec, 4:ipVer=4, 6:ipVer=6
-    
+    /// initialize option: 通信IPバージョン設定（ただし切り替え機能は未実装）
+    /// 0 = IPv4 and IPv6, 4= IPv4, 6: IPv6
+    static var ipVer: Int = 0
+    /// initialize option: 自動プロパティ取得設定
+    public static var autoGetProperties: Bool = true
+    /// initialize option: 自動プロパティ取得設定ONのときの、プロパティ取得ディレイ（未実装）
+    public static var autoGetDelay : Int = 1000
+
+    /// 短期連続送信しないための送信キュー
     static let sendQueue = OperationQueue()
     
     /// ELSwift initializer
