@@ -1473,10 +1473,10 @@ public class ELSwift {
             // 受信状態から機器情報修正,下記の時のみ
             // Get_Res, INF, INFC, INFC_Res, SetGet_Res
             if (els.ESV == ELSwift.GET_RES || els.ESV == ELSwift.GET_SNA || els.ESV == ELSwift.INF || els.ESV == ELSwift.INFC || els.ESV == ELSwift.INFC_RES || els.ESV == ELSwift.SETGET_RES) {
-                //if( isDebug ) {
-                //    print("-> ELSwift.INF rAddress:", rAddress)
-                //    ELSwift.printEL_STRUCTURE(els)
-                //}
+                if( isDebug ) {
+                    print("-> renewFacilities:", rAddress)
+                    ELSwift.printEL_STRUCTURE(els)
+                }
                 try ELSwift.renewFacilities(rAddress, els)
             }
             
@@ -1503,12 +1503,19 @@ public class ELSwift {
             
             // 新規IP
             if ELSwift.facilities[address] == nil { //見つからない
+                if( isDebug ) {
+                    print("New address:", address)
+                }
+                
                 ELSwift.facilities[address] = T_OBJs()
             }
             
             if let objs = ELSwift.facilities[address] {
                 // 新規obj
                 if ( objs[seoj] == nil ) {
+                    if( isDebug ) {
+                        print("New OBJ:", seoj)
+                    }
                     ELSwift.facilities[address]?[seoj] = T_DETAILs()
                 }
                 
