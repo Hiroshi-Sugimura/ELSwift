@@ -142,7 +142,7 @@ public class ELSwift {
     public static let NODE_PROFILE_CLASS: [UInt8] = [0x0e, 0xf0]
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
     
-    public static var facilities: Dictionary<String, T_OBJs? > = Dictionary<String, T_OBJs? >()
+    public static var facilities: Dictionary<String, T_OBJs> = Dictionary<String, T_OBJs>()
     
     // user settings
     static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
@@ -463,13 +463,11 @@ public class ELSwift {
         for (ip, objs) in ELSwift.facilities {
             print("- ip: \(ip)")
             
-            if let os = objs {
-                for (eoj, obj) in os {
-                    print("  - eoj: " + ELSwift.printUInt8Array_String(eoj) )
-                    
-                    for (epc, edt) in obj {
-                        print("    - " + ELSwift.toHexString(epc) + ": " + ELSwift.printUInt8Array_String(edt) )
-                    }
+            for (eoj, obj) in objs {
+                print("  - eoj: " + ELSwift.printUInt8Array_String(eoj) )
+                
+                for (epc, edt) in obj {
+                    print("    - " + ELSwift.toHexString(epc) + ": " + ELSwift.printUInt8Array_String(edt) )
                 }
             }
         }
@@ -1434,33 +1432,30 @@ public class ELSwift {
             let seoj = els.SEOJ
             
             // 新規IP
-            if ( ELSwift.facilities[address] == nil ) { //見つからない
+            if ELSwift.facilities[address] == nil { //見つからない
                 ELSwift.facilities[address] = T_OBJs()
             }
             
-            // 新規obj
-            if (ELSwift.facilities[address]??[seoj] == nil) {
-                ELSwift.facilities[address]??[seoj] = T_DETAILs();
-                // 新規オブジェクトのとき，プロパティリストもらうと取りきるまでループしちゃうのでやめた
-            }
-            
-            for ( epc, pdcedt ) in epcList {
-                // 新規epc
-                if (ELSwift.facilities[address]??[seoj]?[epc] == nil) {
-                    ELSwift.facilities[address]??[seoj]?[epc] = [UInt8]();
+            if let objs = ELSwift.facilities[address] {
+                // 新規obj
+                if ( objs[seoj] == nil ) {
+                    ELSwift.facilities[address]?[seoj] = T_DETAILs()
                 }
                 
-                // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避ける
-                if pdcedt != []  {
-                    ELSwift.facilities[address]??[seoj]?[epc] = pdcedt;
+                for ( epc, pdcedt ) in epcList {
+                    // GET_SNAの時のNULL {EDT:''} を入れてしまうのを避けるため、
+                    // PDC 1byte, edt 1Byte以上の時に格納する
+                    if pdcedt.count <= 2 {
+                        ELSwift.facilities[address]?[seoj]?[epc] = pdcedt;
+                    }
+                    
+                    // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
+                    /*
+                     if( epc === 0x83 ) {
+                     ELSwift.identificationNumbers.push( {id: epcList[epc], ip: address, OBJ: els.SEOJ } );
+                     }
+                     */
                 }
-                
-                // もしEPC = 0x83の時は識別番号なので，識別番号リストに確保
-                /*
-                 if( epc === 0x83 ) {
-                 ELSwift.identificationNumbers.push( {id: epcList[epc], ip: address, OBJ: els.SEOJ } );
-                 }
-                 */
             }
         } catch {
             print("Error!! ELSwift.renewFacilities() error:", error)
