@@ -30,6 +30,7 @@ $ swift test
 
 # Versions
 
+- 0.2.6 Self.isDebug
 - 0.2.5 0.2.4で埋め込んでしまったdebug
 - 0.2.4 facilitiesのDictionaryとOptionalの関係を整理、GET_SNAの取れなかったプロパティの格納を避ける
 - 0.2.3 GET_SNAも更新してよいのでdebug
