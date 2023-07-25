@@ -141,12 +141,15 @@ class CSendTask: Operation {
 //==============================================================================
 // Network Object
 
+/// Networkをモニタする。
+/// 内部オブジェクト、WiFiの切り替えとか検知できる？
 struct NetworkMonitor {
     static let monitor = NWPathMonitor()
     static var connection = true
 }
 
 
+/// ELSwiftでの例外
 enum ELError: Error {
     case BadNetwork
     case BadString(String)
@@ -159,9 +162,17 @@ enum ELError: Error {
 /// the main class for ELSwift, ECHONET Lite protocol
 /// ELSwift is available for only one object for an app. Multi object cannot exist.
 public class ELSwift {
+    /// ネットワークタイプ
+    /// 内部プロパティ
     public static let networkType = "_networkplayground._udp."
+    /// ネットワークドメイン
+    /// 内部プロパティ
     public static let networkDomain = "local"
+    /// ECHONET用の受信ポート、3610で固定
+    /// 内部プロパティ
     public static let PORT:UInt16 = 3610
+    /// ECHONET Liteのデータヘッダ、[0x10, 0x81]で固定
+    /// 内部プロパティ
     public static let EHD:[UInt8] = [0x10, 0x81]
     
     // define
