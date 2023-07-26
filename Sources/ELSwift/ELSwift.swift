@@ -614,7 +614,15 @@ public class ELSwift {
     }
     
     /// 送信系
-    // sendOPC1( targetIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00])
+    /// - Parameters:
+    ///   - ip:
+    ///   - seoj
+    ///   - deoj:
+    ///   - esv:
+    ///   - epc:
+    ///   - edt:
+    /// - Throws:
+    /// note: sendOPC1(  destIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00])
     public static func sendOPC1(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
         if( Self.isDebug ) { print("<- ELSwift.sendOPC1(...)") }
         do{
@@ -684,15 +692,55 @@ public class ELSwift {
     }
     
     /// 送信系
-    // elsを送る、TIDはAuto
+    /// elsを送る、TIDはAuto
+    /// 内部的にCSendTaskで使っているので、修正時には注意
     public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
         if( Self.isDebug ) { print("<- ELSwift.sendELS(els)") }
-        // TIDの調整
+        
         ELSwift.increaseTID()
         
         // データができたので送信する
         try ELSwift.sendDetails(ip, els.SEOJ, els.DEOJ, els.ESV, els.DETAILs);
     }
+
+    /// 非同期 送信系
+    /// elsを送る、TIDはAuto
+    /// CSendTaskに登録する
+    public static func sendAsyncELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
+        if( Self.isDebug ) { print("<- ELSwift.sendAsyncELS(els)") }
+
+        sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
+    }
+    
+    /// 非同期 送信系
+    ///  OPCが１のタイプ
+    public static func sendAsyncOPC1(_ toip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) -> Void {
+        if( Self.isDebug ) { print("<- ELSwift.sendAsyncOPC1(...)") }
+        var epcpdcedt : [UInt8] = [UInt8]()
+        
+        if( esv == 0x62 ) { // get
+            epcpdcedt = [epc, 0x00]
+        }else{
+            epcpdcedt = [epc, UInt8(edt.count)] + edt
+        }
+        
+        let els : EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:seoj, deoj:deoj, esv:esv, opc:0x01, epcpdcedt: epcpdcedt )
+
+        // データができたので送信する
+        sendQueue.addOperations( [CSendTask( toip, els)], waitUntilFinished: false)
+    }
+
+    /// 非同期 送信系
+    ///  OPCが１以外で柔軟に送信データ作りたいタイプ
+    public static func sendAsyncArray(_ toip:String, _ array:[UInt8]) throws -> Void {
+        if( Self.isDebug ) { print("<- ELSwift.sendAsyncArray(...)") }
+        
+        let els:EL_STRUCTURE = try ELSwift.parseBytes(array)
+
+        // データができたので送信する
+        sendQueue.addOperations( [CSendTask( toip, els)], waitUntilFinished: false)
+    }
+
     
     //------------ multi send
     /// 送信系
@@ -1337,7 +1385,6 @@ public class ELSwift {
                     if(  ELSwift.autoGetProperties ) {
                         for (epc, _) in els.DETAILs {
                             let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x01, epcpdcedt: [epc, 0x00] )
-                            
                             sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
                         }
                     }
