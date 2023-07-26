@@ -672,15 +672,14 @@ public class ELSwift {
         var epcpdcedt:T_EPCPDCEDT = []
         
         // detailsがArrayのときはEPCの出現順序に意味がある場合なので、順番を崩さないようにせよ
-        for( epc, pdcedt ) in DETAILs {
+        for( epc, edt ) in DETAILs {
             // print("epc:", epc, "pdcedt:", pdcedt)
             // edtがあればそのまま使う、nilなら[0x00]をいれておく
-            if( pdcedt == [] ) {  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
-                epcpdcedt += [epc] + [0x00];
-            }else{
-                pdc = pdcedt[0];  // 0番がpdc
-                let edt:[UInt8] = Array( pdcedt[1...] )
+            if( edt.count >= 1 ) {  // edtのサイズで、GET、GET_SNAなどと処理を変更
+                pdc = UInt8(edt.count);  // 0番がpdc
                 epcpdcedt += [epc] + [pdc] + edt
+            }else{  // [0x00] の時は GetやGet_SNA等で存在する、この時はpdc省略
+                epcpdcedt += [epc] + [0x00];
             }
             opc += 1;
         }

@@ -33,6 +33,7 @@ $ swift test
 
 # Versions
 
+- 0.3.3 sendDetailsのバグ修正
 - 0.3.2 PDCバグ修正
 - 0.3.1 見やすく
 - 0.3.0 非同期送信
