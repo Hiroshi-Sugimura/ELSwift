@@ -721,7 +721,7 @@ public class ELSwift {
         if( esv == ELSwift.GET ) { // getはpdc:0、edt無し
             epcpdcedt = [epc, 0x00]
         }else{
-            epcpdcedt = [epc, UInt8(edt.count)] + edt
+            epcpdcedt = [epc] + [UInt8(edt.count)] + edt
         }
         
         let els : EL_STRUCTURE = EL_STRUCTURE( tid:[0x00,0x00], seoj:seoj, deoj:deoj, esv:esv, opc:0x01, epcpdcedt: epcpdcedt )

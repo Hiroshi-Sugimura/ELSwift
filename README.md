@@ -33,6 +33,10 @@ $ swift test
 
 # Versions
 
+- 0.3.2 PDCバグ修正
+- 0.3.1 見やすく
+- 0.3.0 非同期送信
+- 0.2.9 無駄なdebugprint削除
 - 0.2.8 renewFacilitiesのdebug
 - 0.2.7 renewFacilitiesのdebug[x]
 - 0.2.6 Self.isDebug
