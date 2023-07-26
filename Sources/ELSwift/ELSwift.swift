@@ -285,7 +285,9 @@ public class ELSwift {
             // 自分のIPを取得したいけど、どうやるんだか謎。
             // 下記でinterfaceリストまでは取れる
             NetworkMonitor.monitor.pathUpdateHandler = { (path : NWPath) in
-                print("ELSwift.initialize() NetworkMonitor path:", String(describing: path) )
+                if( Self.isDebug ) {
+                    print("ELSwift.initialize() NetworkMonitor path:", String(describing: path) )
+                }
                 
                 if path.status == .satisfied {
                     NetworkMonitor.connection = true
