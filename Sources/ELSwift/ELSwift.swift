@@ -154,6 +154,7 @@ enum ELError: Error {
     case BadNetwork
     case BadString(String)
     case BadReceivedData
+    case AddressAlreadyInUse
     case other(String)
 }
 
@@ -260,6 +261,7 @@ public class ELSwift {
     public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
             Self.isDebug = option?.debug ?? false
+            var AddressAlreadyInUse:Bool = false
             // 正しいオブジェクトリストのチェック
             if( 1 < objList.count && objList.count % 3 != 0 ) {
                 print("ELSwift.initialize objList is invalid.")
@@ -278,7 +280,7 @@ public class ELSwift {
             }
             
             // send queue
-            sendQueue.name = "net.sugimulab.ELSwift.sendQueue"
+            sendQueue.name = "net.sugi-lab.ELSwift.sendQueue"
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
             
@@ -300,23 +302,23 @@ public class ELSwift {
 
             //---- multicast
             guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
-            else { fatalError("Error!! ELSwift.initialize() error in Muticast") }
+            else { fatalError("ELSwift.initialize() \(#line) error in Muticast") }
 
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
 
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
-                    print("ELSwift.initialize() group.setReceiveHandler message:")
+                    print("ELSwift.initialize() \(#line) group.setReceiveHandler message:")
                     print("|", String(describing: message))
-                    print("ELSwift.initialize() NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
+                    print("ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
                 }
 
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
                     ELSwift.returner( ip_port[0], content )
                 }else{
-                    print("Error!! ELSwift.initiallize() group.setReceiveHandler")
-                    print("Error!! | Message doesn't convert to ipa")
+                    print("ELSwift.initiallize() \(#line) group.setReceiveHandler")
+                    print("ELSwift.initiallize() \(#line) Message doesn't convert to ipa")
                 }
                 /*
                  do{
@@ -332,9 +334,9 @@ public class ELSwift {
             
             ELSwift.group.stateUpdateHandler = { (newState:NWConnectionGroup.State) in
                 if( Self.isDebug ) {
-                    print("ELSwift.initialize() group.startUpdateHandler newState: \(String(describing: newState))")
+                    print("ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
                     print("|", String(describing: ELSwift.group))
-                    print("ELSwift.initialize() NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
+                    print("ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
                 }
 
                 switch newState {
@@ -347,22 +349,21 @@ public class ELSwift {
                     // if( Self.isDebug ) { print("send...UDP") }
                     ELSwift.group.send(content: groupSendContent) { (error)  in
                         if( Self.isDebug ) {
-                            print("ELSwift.initialize() group.startUpdateHandler Send complete with error \(String(describing: error))") }
+                            print("ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
                     }
                     
                 case .waiting(let error):
-                    if( Self.isDebug ) { print("ELSwift.initialize() group.startUpdateHandler waiting") }
+                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler waiting") }
                     if( Self.isDebug ) { print("|", error) }
                 case .setup:
-                    if( Self.isDebug ) { print("ELSwift.initialize() group.startUpdateHandler setup") }
+                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler setup") }
                 case .cancelled:
-                    if( Self.isDebug ) { print("ELSwift.initialize() group.startUpdateHandler cancelled") }
+                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler cancelled") }
                 case .failed:
-                    if( Self.isDebug ) { print("ELSwift.initialize() group.startUpdateHandler failed") }
-                    //case .preparing:
-                    //    if( Self.isDebug ) { print("preparing") }
+                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler failed") }
+                    callback("", nil, ELError.AddressAlreadyInUse)
                 default:
-                    if( Self.isDebug ) { print("ELSwift.initialize() group.startUpdateHandler default") }
+                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler default") }
                 }
             }
             
