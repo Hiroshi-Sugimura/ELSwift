@@ -127,7 +127,7 @@ class CSendTask: Operation {
         }
         
         // スレッドを1秒止める（本当はinitialize時の .autoGetDelay の値を使用したい）
-        Thread.sleep(forTimeInterval: 0.5)
+        Thread.sleep(forTimeInterval: 0.2)
         
         do{
             try ELSwift.sendELS(address, els)
