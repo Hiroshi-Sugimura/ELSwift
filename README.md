@@ -33,6 +33,7 @@ $ swift test
 
 # Versions
 
+- 0.3.5 queue名変更、port重複判定、sendQueue処理待ちを0.5秒にした、
 - 0.3.4 sendQueue処理をデフォルト１秒とする
 - 0.3.3 sendDetailsのバグ修正
 - 0.3.2 PDCバグ修正

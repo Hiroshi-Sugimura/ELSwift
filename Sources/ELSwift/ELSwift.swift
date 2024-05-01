@@ -127,7 +127,7 @@ class CSendTask: Operation {
         }
         
         // スレッドを1秒止める（本当はinitialize時の .autoGetDelay の値を使用したい）
-        Thread.sleep(forTimeInterval: 1)
+        Thread.sleep(forTimeInterval: 0.5)
         
         do{
             try ELSwift.sendELS(address, els)
@@ -223,7 +223,6 @@ public class ELSwift {
     /// 自身のプロパティ
     public static var Node_details:T_DETAILs = T_DETAILs()
     
-
     ///送信時のTID自動設定用
     ///内部プロパティ
     public static var tid:[UInt8] = [0x00, 0x01]
@@ -301,7 +300,8 @@ public class ELSwift {
             NetworkMonitor.monitor.start(queue: queue2)
 
             //---- multicast
-            guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
+            //guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
+            guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)])
             else { fatalError("ELSwift.initialize() \(#line) error in Muticast") }
 
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
@@ -309,7 +309,9 @@ public class ELSwift {
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
                     print("ELSwift.initialize() \(#line) group.setReceiveHandler message:")
-                    print("|", String(describing: message))
+                    print("| message: \(String(describing: message))")
+                    print("| content: \(String(describing: content))")
+                    print("| isComplete: \(String(describing: isComplete))")
                     print("ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
                 }
 
