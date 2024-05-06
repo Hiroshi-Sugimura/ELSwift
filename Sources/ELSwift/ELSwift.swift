@@ -1354,10 +1354,19 @@ public class ELSwift {
         // 無視しない
         //        let els;
         do {
-            // キチンとパースできた
+            // ヘッダ確認、format2を解析しない
+            if let bytes = content {
+                if( Array(bytes[0...1]) != [0x10, 0x81] ) {
+                    if( Self.isDebug ) { print("Data is reject, EL format2. content: \(bytes)") }
+                    return
+                }
+            }else{
+                return
+            }
+
+            // パースしてみる
             var els:EL_STRUCTURE = try ELSwift.parseData( content! )
-            
-            // ヘッダ確認
+
             if (els.EHD != [0x10, 0x81]) {
                 return
             }

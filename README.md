@@ -33,6 +33,7 @@ $ swift test
 
 # Versions
 
+- 0.3.7 EL format 2でExceptionでるので解析するまえにrejectする（三菱TV等対応）
 - 0.3.6 delay 0.2でも平気みたいですが、どうでしょう
 - 0.3.5 queue名変更、port重複判定、sendQueue処理待ちを0.5秒にした、
 - 0.3.4 sendQueue処理をデフォルト１秒とする
