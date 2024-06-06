@@ -94,7 +94,7 @@ public struct EL_STRUCTURE : Equatable{
         do{
             DETAILs = try ELSwift.parseDetail(opc, epcpdcedt)
         }catch{
-            print("Error!! ELSwift - EL_STRUCTURE.init() error:", error)
+            print("| Error!! ELSwift - EL_STRUCTURE.init() error:", error)
             DETAILs = T_DETAILs()
         }
     }
@@ -132,7 +132,7 @@ class CSendTask: Operation {
         do{
             try ELSwift.sendELS(address, els)
         }catch{
-            print("Error!! ELSwift - CSendTask.main()", els)
+            print("| Error!! ELSwift - CSendTask.main()", els)
         }
     }
 }
@@ -263,7 +263,7 @@ public class ELSwift {
             var AddressAlreadyInUse:Bool = false
             // 正しいオブジェクトリストのチェック
             if( 1 < objList.count && objList.count % 3 != 0 ) {
-                print("ELSwift.initialize objList is invalid.")
+                print("| ELSwift.initialize objList is invalid.")
                 return
             }
             
@@ -272,7 +272,7 @@ public class ELSwift {
             autoGetProperties = option?.autoGetProperties ?? true
             
             if( Self.isDebug ) {
-                print("===== ELSwift.init() =====")
+                print("| ==== ELSwift.init() =====")
                 print("| ipVer:", ELSwift.ipVer)
                 print("| autoGetProperties:", ELSwift.autoGetProperties)
                 print("| debug:", Self.isDebug)
@@ -287,7 +287,7 @@ public class ELSwift {
             // 下記でinterfaceリストまでは取れる
             NetworkMonitor.monitor.pathUpdateHandler = { (path : NWPath) in
                 if( Self.isDebug ) {
-                    print("ELSwift.initialize() NetworkMonitor path:", String(describing: path) )
+                    print("| ELSwift.initialize() NetworkMonitor path:", String(describing: path) )
                 }
                 
                 if path.status == .satisfied {
@@ -302,25 +302,25 @@ public class ELSwift {
             //---- multicast
             //guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
             guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)])
-            else { fatalError("ELSwift.initialize() \(#line) error in Muticast") }
+            else { fatalError("| ELSwift.initialize() \(#line) error in Muticast") }
 
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
 
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
-                    print("ELSwift.initialize() \(#line) group.setReceiveHandler message:")
+                    print("| ELSwift.initialize() \(#line) group.setReceiveHandler message:")
                     print("| message: \(String(describing: message))")
                     print("| content: \(String(describing: content))")
                     print("| isComplete: \(String(describing: isComplete))")
-                    print("ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
+                    print("| ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
                 }
 
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
                     ELSwift.returner( ip_port[0], content )
                 }else{
-                    print("ELSwift.initiallize() \(#line) group.setReceiveHandler")
-                    print("ELSwift.initiallize() \(#line) Message doesn't convert to ipa")
+                    print("| ELSwift.initiallize() \(#line) group.setReceiveHandler")
+                    print("| ELSwift.initiallize() \(#line) Message doesn't convert to ipa")
                 }
                 /*
                  do{
@@ -336,9 +336,9 @@ public class ELSwift {
             
             ELSwift.group.stateUpdateHandler = { (newState:NWConnectionGroup.State) in
                 if( Self.isDebug ) {
-                    print("ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
+                    print("| ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
                     print("|", String(describing: ELSwift.group))
-                    print("ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
+                    print("| ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
                 }
 
                 switch newState {
@@ -351,21 +351,21 @@ public class ELSwift {
                     // if( Self.isDebug ) { print("send...UDP") }
                     ELSwift.group.send(content: groupSendContent) { (error)  in
                         if( Self.isDebug ) {
-                            print("ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
+                            print("| ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
                     }
                     
                 case .waiting(let error):
-                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler waiting") }
+                    if( Self.isDebug ) { print("| ELSwift.initialize() \(#line) group.startUpdateHandler waiting") }
                     if( Self.isDebug ) { print("|", error) }
                 case .setup:
-                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler setup") }
+                    if( Self.isDebug ) { print("| ELSwift.initialize() \(#line) group.startUpdateHandler setup") }
                 case .cancelled:
-                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler cancelled") }
+                    if( Self.isDebug ) { print("| ELSwift.initialize() \(#line) group.startUpdateHandler cancelled") }
                 case .failed:
-                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler failed") }
+                    if( Self.isDebug ) { print("| ELSwift.initialize() \(#line) group.startUpdateHandler failed") }
                     callback("", nil, ELError.AddressAlreadyInUse)
                 default:
-                    if( Self.isDebug ) { print("ELSwift.initialize() \(#line) group.startUpdateHandler default") }
+                    if( Self.isDebug ) { print("| ELSwift.initialize() \(#line) group.startUpdateHandler default") }
                 }
             }
             
@@ -418,13 +418,13 @@ public class ELSwift {
     
     /// ELSwiftの通信終了
     public static func release () {
-        if( Self.isDebug ) { print("ELSwift.release()") }
+        if( Self.isDebug ) { print("| ELSwift.release()") }
         group.cancel()
     }
     
     /// ELSwiftの通信しているか？初期化動作済みか？をチェックする
     public static func IsReady() -> Bool {
-        if( Self.isDebug ) { print("ELSwift.isReady()") }
+        if( Self.isDebug ) { print("| ELSwift.isReady()") }
         return ELSwift.isReady
     }
     
@@ -456,7 +456,7 @@ public class ELSwift {
     /// 受信データ処理
     public static func receive(nWConnection:NWConnection) -> Void {
         nWConnection.receive(minimumIncompleteLength: 1, maximumLength: 5, completion: { (data, context, flag, error) in
-            if( Self.isDebug ) { print("ELSwift.receive() receiveMessage") }
+            if( Self.isDebug ) { print("| ELSwift.receive() receiveMessage") }
             //if let data = data {
             // let receiveData = [UInt8](data)
             // if( Self.isDebug ) { print(receiveData) }
@@ -521,12 +521,12 @@ public class ELSwift {
         let deoj = els.DEOJ.map{ String( format: "%02X", $0)}
         let esv = String( format: "%02X", els.ESV)
         let opc = String( format: "%02X", els.OPC)
-        print( "TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)")
+        print( "| TID:\(els.TID), SEOJ:\(seoj), DEOJ:\(deoj), ESV:\(esv), OPC:\(opc)", terminator:"")
         for( epc, edt ) in els.DETAILs {
             let pdc = String( format: "%02X", edt.count)
             let edt = edt.map{ String( format: "%02X", $0 )}
             let _epc = String( format: "%02X", epc )
-            print("    EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
+            print(" EPC:\(_epc), PDC:\(pdc), EDT:\(edt)" )
         }
     }
     
@@ -556,7 +556,7 @@ public class ELSwift {
     /// - Throws:Portが確保できないなどの例外
     public static func sendBase(_ toip:String, _ array: [UInt8]) throws -> Void {
         if( Self.isDebug ) {
-            print("<- ELSwift.sendBase(Data) data:")
+            print("S <- ELSwift.sendBase(Data) data:", terminator: "")
             ELSwift.printUInt8Array(array)
         }
         
@@ -566,7 +566,7 @@ public class ELSwift {
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
             if ( error != nil ) {
-                print("Error!! ELSwift.sendBase() error: \(String(describing: error))")
+                print("| Error!! ELSwift.sendBase() error: \(String(describing: error))")
             }else{
                 // if( Self.isDebug ) { print("sendBase() 送信完了") }
                 socket.cancel()  // 送信したらソケット閉じる
@@ -587,7 +587,7 @@ public class ELSwift {
             case .cancelled: break
             case .preparing: break
             @unknown default:
-                fatalError("ELSwift.sendBase() Illegal state")
+                fatalError("| ELSwift.sendBase() Illegal state")
             }
         }
         
@@ -596,21 +596,21 @@ public class ELSwift {
     
     /// 送信系
     public static func sendBase(_ toip:String,_ data: Data) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendBase(Data)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendBase(Data)") }
         let msg:[UInt8] = [UInt8](data)
         try ELSwift.sendBase(toip, msg)
     }
     
     /// 送信系
     public static func sendArray(_ toip:String,_ array: [UInt8]) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendBase(UInt8)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendArray(array)") }
         // 送信
         try ELSwift.sendBase(toip, array )
     }
     
     /// 送信系
     public static func sendString(_ toip:String,_ message: String) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendString()") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendString()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBase( toip, data )
@@ -627,7 +627,7 @@ public class ELSwift {
     /// - Throws:
     /// note: sendOPC1(  destIP, [0x05,0xff,0x01], [0x01,0x35,0x01], 0x62, 0x80, [0x00])
     public static func sendOPC1(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
-        if( Self.isDebug ) { print("<- ELSwift.sendOPC1(...)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendOPC1(...)") }
         do{
             var binArray:[UInt8]
             
@@ -665,7 +665,7 @@ public class ELSwift {
     
     /// 送信系
     public static func sendDetails(_ ip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv:UInt8, _ DETAILs:T_DETAILs ) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendDetails(...)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendDetails(...)") }
         // TIDの調整
         ELSwift.increaseTID()
         
@@ -697,7 +697,7 @@ public class ELSwift {
     /// elsを送る、TIDはAuto
     /// 内部的にCSendTaskで使っているので、修正時には注意
     public static func sendELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendELS(els)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendELS(els)") }
         
         ELSwift.increaseTID()
         
@@ -709,7 +709,7 @@ public class ELSwift {
     /// elsを送る、TIDはAuto
     /// CSendTaskに登録する
     public static func sendAsyncELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendAsyncELS(els)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendAsyncELS(els)") }
 
         sendQueue.addOperations( [CSendTask( ip, els)], waitUntilFinished: false)
     }
@@ -717,7 +717,7 @@ public class ELSwift {
     /// 非同期 送信系
     ///  OPCが１のタイプ
     public static func sendAsyncOPC1(_ toip:String, _ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendAsyncOPC1(...)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendAsyncOPC1(...)") }
         var epcpdcedt : [UInt8] = [UInt8]()
         
         if( esv == ELSwift.GET ) { // getはpdc:0、edt無し
@@ -735,7 +735,7 @@ public class ELSwift {
     /// 非同期 送信系
     ///  OPCが１以外で柔軟に送信データ作りたいタイプ
     public static func sendAsyncArray(_ toip:String, _ array:[UInt8]) throws -> Void {
-        if( Self.isDebug ) { print("<- ELSwift.sendAsyncArray(...)") }
+        if( Self.isDebug ) { print("S <- ELSwift.sendAsyncArray(...)") }
         
         let els:EL_STRUCTURE = try ELSwift.parseBytes(array)
 
@@ -747,7 +747,7 @@ public class ELSwift {
     //------------ multi send
     /// 送信系
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
-        if( Self.isDebug ) { print("<= ELSwift.sendBaseMulti(Data)") }
+        if( Self.isDebug ) { print("S <= ELSwift.sendBaseMulti(Data)") }
         ELSwift.group.send(content: data) { (error)  in
             if( error != nil ) {
                 print("Error!! ELSwift.sendBaseMulti(Data) Send complete with error: \(String(describing: error))")
@@ -757,7 +757,7 @@ public class ELSwift {
     
     /// 送信系
     public static func sendBaseMulti(_ msg: [UInt8]) throws -> Void {
-        if( Self.isDebug ) { print("<= ELSwift.sendBaseMulti(UInt8)") }
+        if( Self.isDebug ) { print("S <= ELSwift.sendBaseMulti(UInt8)") }
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
         ELSwift.group.send(content: groupSendContent) { (error)  in
@@ -769,7 +769,7 @@ public class ELSwift {
     
     /// 送信系
     public static func sendStringMulti(_ message: String) throws -> Void {
-        if( Self.isDebug ) { print("<= ELSwift.sendStringMulti()") }
+        if( Self.isDebug ) { print("S <= ELSwift.sendStringMulti()") }
         // 送信
         let data = try ELSwift.toHexArray(message)
         try ELSwift.sendBaseMulti( data )
@@ -777,7 +777,7 @@ public class ELSwift {
     
     /// 送信系
     public static func sendOPC1Multi(_ seoj:[UInt8], _ deoj:[UInt8], _ esv: UInt8, _ epc: UInt8, _ edt:[UInt8]) throws -> Void{
-        if( Self.isDebug ) { print("<= ELSwift.sendOPC1Multi()") }
+        if( Self.isDebug ) { print("S <= ELSwift.sendOPC1Multi()") }
         do{
             var binArray:[UInt8]
             
@@ -814,7 +814,7 @@ public class ELSwift {
     
     /// 送信系
     public static func search() throws -> Void {
-        if( Self.isDebug ) { print("<= ELSwift.search()") }
+        if( Self.isDebug ) { print("S <= ELSwift.search()") }
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
@@ -831,7 +831,7 @@ public class ELSwift {
     public static func getPropertyMaps(_ ip:String,_ eoj:[UInt8] )
     {
         if( Self.isDebug ) {
-            print("<- ELSwift.getPropertyMaps() rAddress:", ip, "obj:", ELSwift.printUInt8Array_String(eoj) )
+            print("S <- ELSwift.getPropertyMaps() rAddress:", ip, "obj:", ELSwift.printUInt8Array_String(eoj) )
         }
         // プロファイルオブジェクトのときはプロパティマップももらうけど，識別番号ももらう
         if( eoj[0] == 0x0e && eoj[1] == 0xf0 ) {
@@ -908,13 +908,13 @@ public class ELSwift {
     // 上記のサブルーチン
     public static func replyGetDetail_sub(_ els:EL_STRUCTURE, _ dev_details:T_OBJs, _ epc:UInt8) -> Bool {
         guard let obj = dev_details[els.DEOJ] else { // EOJそのものがあるか？
-            print( "Warning! ELSwift.replyGetDetail() error: EOJ is not found.", ELSwift.printUInt8Array_String(els.DEOJ) )
+            print( "| Warning! ELSwift.replyGetDetail() error: EOJ is not found.", ELSwift.printUInt8Array_String(els.DEOJ) )
             return false
         }
         
         // console.log( dev_details[els.DEOJ], els.DEOJ, epc );
         if ( obj[epc] == nil || obj[epc] == [] ) { // EOJはあるが、EPCが無い、または空
-            print( "Warning! ELSwift.replyGetDetail() error: EPC is not found or empty.", ELSwift.toHexString(epc) )
+            print( "| Warning! ELSwift.replyGetDetail() error: EPC is not found or empty.", ELSwift.toHexString(epc) )
             return false
         }
         return true  // OK
@@ -1167,7 +1167,7 @@ public class ELSwift {
         do{
             // 最低限のELパケットになってない
             if( bytes.count < 14 ) {
-                print( "Error!! ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
+                print( "| Error!! ELSwift.parseBytes() error: bytes is less then 14 bytes. bytes.count is \(bytes.count)" )
                 ELSwift.printUInt8Array( bytes )
                 throw ELError.BadReceivedData
             }
@@ -1241,7 +1241,7 @@ public class ELSwift {
     public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
         // pre-condition
         let len = str.count
-        if( len < begginingIndex + count ) { throw ELError.other("BadRange str:\(str), begin:\(begginingIndex), count:\(count)") }
+        if( len < begginingIndex + count ) { throw ELError.other("| BadRange str:\(str), begin:\(begginingIndex), count:\(count)") }
         
         // チェック後
         let begin = str.index( str.startIndex, offsetBy: Int(begginingIndex))
@@ -1357,7 +1357,7 @@ public class ELSwift {
             // ヘッダ確認、format2を解析しない
             if let bytes = content {
                 if( Array(bytes[0...1]) != [0x10, 0x81] ) {
-                    if( Self.isDebug ) { print("Data is reject, EL format2. content: \(bytes)") }
+                    if( Self.isDebug ) { print("| Data is reject, EL format2. content: \(bytes)") }
                     return
                 }
             }else{
@@ -1372,8 +1372,8 @@ public class ELSwift {
             }
             
             if( Self.isDebug ) {
-                print("===== ELSwift.returner() =====")
-                ELSwift.printEL_STRUCTURE(els)
+                print("|==== ELSwift.returner() =====")
+                print("R -->", ELSwift.getSeparatedString_ELDATA(els))
             }
             
             // Node profileに関してきちんと処理する
@@ -1496,6 +1496,7 @@ public class ELSwift {
                         if( array == [] ) {  // GET_SNAの時など、EDT = []の時がある
                             break
                         }
+                        print("# 9f", terminator: "")
                         ELSwift.printUInt8Array(array)
                         var epcpdcedt:T_EPCPDCEDT = []
                         let num:Int = Int( array[0] )
@@ -1510,7 +1511,6 @@ public class ELSwift {
                             i += 1
                         }
                         
-                        
                         let els:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, epcpdcedt:epcpdcedt)
                         sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
                         
@@ -1519,7 +1519,7 @@ public class ELSwift {
                     break
                     
                 case ELSwift.INF:  // 0x73
-                    if( Self.isDebug ) { print("-> ELSwift.INF rAddress:", rAddress, " obj: NodeProfileObject") }
+                    if( Self.isDebug ) { print("R -> ELSwift.INF rAddress:", rAddress, " obj: NodeProfileObject") }
                     // ECHONETネットワークで、新規デバイスが起動したのでプロパティもらいに行く
                     // autoGetPropertiesがfalseならやらない
                     if( els.DETAILs[0xd5] != nil && els.DETAILs[0xd5] != []  && ELSwift.autoGetProperties) {
@@ -1530,7 +1530,7 @@ public class ELSwift {
                     
                 case ELSwift.INFC: // "74"
                     if( Self.isDebug ) {
-                        print("-> ELSwift.INFC rAddress:", rAddress, " obj: NodeProfileObject" )
+                        print("R -> ELSwift.INFC rAddress:", rAddress, " obj: NodeProfileObject" )
                     }
                     // ECHONET Lite Ver. 1.0以前の処理で利用していたフロー
                     // オブジェクトリストをもらったらそのオブジェクトのPropertyMapをもらいに行く
@@ -1567,21 +1567,20 @@ public class ELSwift {
             // Get_Res, INF, INFC, INFC_Res, SetGet_Res
             if (els.ESV == ELSwift.GET_RES || els.ESV == ELSwift.GET_SNA || els.ESV == ELSwift.INF || els.ESV == ELSwift.INFC || els.ESV == ELSwift.INFC_RES || els.ESV == ELSwift.SETGET_RES) {
                 if( Self.isDebug ) {
-                    print("-> renewFacilities:", rAddress)
-                    ELSwift.printEL_STRUCTURE(els)
+                    print("| ELSwift.renewFacilities ip:", rAddress, "els:", ELSwift.getSeparatedString_ELDATA(els) )
                 }
                 try ELSwift.renewFacilities(rAddress, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
             if( Self.isDebug ) {
-                print("----- ELSwift.userFunc rAddress:", rAddress, "-----")
+                print("| ELSwift.userFunc rAddress:", rAddress)
                 // ELSwift.printEL_STRUCTURE(els)
             }
             ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( Self.isDebug ) {
-                print("Error!! ELSwift.userFunc rAddress:", rAddress, content!, error)
+                print("| Error!! ELSwift.userFunc rAddress:", rAddress, content!, error)
             }
             ELSwift.userFunc!(rAddress, nil, error)
         }
@@ -1597,7 +1596,7 @@ public class ELSwift {
             // 新規IP
             if ELSwift.facilities[address] == nil { //見つからない
                 if( Self.isDebug ) {
-                    print("New address:", address)
+                    print("| New address:", address)
                 }
                 
                 ELSwift.facilities[address] = T_OBJs()
@@ -1607,7 +1606,7 @@ public class ELSwift {
                 // 新規obj
                 if ( objs[seoj] == nil ) {
                     if( Self.isDebug ) {
-                        print("New OBJ:", seoj)
+                        print("| New OBJ:", seoj)
                     }
                     ELSwift.facilities[address]?[seoj] = T_DETAILs()
                 }
@@ -1628,7 +1627,7 @@ public class ELSwift {
                 }
             }
         } catch {
-            print("Error!! ELSwift.renewFacilities() error:", error)
+            print("| Error!! ELSwift.renewFacilities() error:", error)
             // console.dir(e);
             throw error;
         }
