@@ -12,6 +12,12 @@ File > AddPackages... > 右上の[Search or Enter Package URL] にGithubのURL�
 パッケージ更新は、左型ペインのパッケージのところを右クリックして Upgrade package する
 
 
+ELSwiftフォルダのELSwift.entitlementsをプロジェクトにコピーして設定する。
+
+参考：entitlementsの内容や設定方法はAppleがころころ変えるのでここでは参考程度です。
+UDPのマルチキャストはセキュリティやプライバシ保護的にデフォルトで制限されているので、特別な設定が必要ということを知っておいてください。
+
+
 # らいせんす
 
 えむあいてー
