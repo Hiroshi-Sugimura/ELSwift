@@ -15,7 +15,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
     steps:
-    - uses: swift-actions/setup-swift@v1
+    - uses: swift-actions/setup-swift@v2
     - name: Get swift version
       run: |
         swift --version # Swift 5.8
