@@ -15,11 +15,11 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
     steps:
-    - uses: swift-actions/setup-swift@v1
+    - uses: swift-actions/setup-swift@v2
     - name: Get swift version
       run: |
         swift --version # Swift 5.8
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: build docc
       run: |
         swift package --allow-writing-to-directory ./docs generate-documentation \
@@ -28,7 +28,7 @@ jobs:
         --transform-for-static-hosting \
         --output-path ./docs \
         --hosting-base-path ELSwift
-    - uses: actions/upload-pages-artifact@v1
+    - uses: actions/upload-pages-artifact@v2
       with:
         path: docs
 
