@@ -11,24 +11,30 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    name: Swift ${{ matrix.swift }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     env:
-      DEVELOPER_DIR: /Applications/Xcode_14.0.app/Contents/Developer
+        TOOLCHAINS: swift
+    strategy:
+      matrix:
+        os: [macos-latest]
+        swift: ["5.9.2"]
     steps:
-    - uses: swift-actions/setup-swift@v1
+    - uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: ${{ matrix.swift }}
     - name: Get swift version
-      run: |
-        swift --version # Swift 5.8
-    - uses: actions/checkout@v3
+      run: swift --version
+    - uses: actions/checkout@v4
     - name: build docc
       run: |
-        swift package --allow-writing-to-directory ./docs generate-documentation \
-        --target ELSwift \
+        swift package generate-documentation \
         --disable-indexing \
         --transform-for-static-hosting \
         --output-path ./docs \
-        --hosting-base-path ELSwift
-    - uses: actions/upload-pages-artifact@v1
+        --hosting-base-path ELSwift \
+        --verbose
+    - uses: actions/upload-pages-artifact@v2
       with:
         path: docs
 
@@ -45,4 +51,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
- 
