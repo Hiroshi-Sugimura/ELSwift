@@ -306,6 +306,7 @@ public class ELSwift {
 
             ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
 
+            
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
                     print("| ELSwift.initialize() \(#line) group.setReceiveHandler message:")
@@ -317,7 +318,9 @@ public class ELSwift {
 
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                    ELSwift.returner( ip_port[0], content )
+                    Task{
+                        await ELSwift.returner( ip_port[0], content )
+                    }
                 }else{
                     print("| ELSwift.initiallize() \(#line) group.setReceiveHandler")
                     print("| ELSwift.initiallize() \(#line) Message doesn't convert to ipa")
@@ -1344,7 +1347,7 @@ public class ELSwift {
 
     /// 受信処理
     // ELの受信データを振り分ける
-    public static func returner(_ rAddress: String, _ content: Data? ) {
+    public static func returner(_ rAddress: String, _ content: Data? ) async {
         // 自IPを無視する設定があればチェックして無視する
         // 無視しないならチェックもしない
         //        if( ELSwift.ignoreMe ? ELSwift.myIPaddress(rinfo) : false ) {
