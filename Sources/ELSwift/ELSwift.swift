@@ -538,7 +538,7 @@ public class ELSwift {
     public static func printFacilities() -> Void {
         print("-- ELSwift.printFacilities() --")
         
-        if ELSwift.facilities == [:] {
+        if (ELSwift.facilities.isEmpty) {
             return
         }
 
@@ -1601,7 +1601,7 @@ public class ELSwift {
             let seoj = els.SEOJ
 
             // 新規IP
-            if ELSwift.facilities == [:] || ELSwift.facilities[address] == nil { //見つからない
+            if (ELSwift.facilities.isEmpty || ELSwift.facilities[address] == nil) { //見つからない
                 if( Self.isDebug ) {
                     print("| New address:", address)
                 }
