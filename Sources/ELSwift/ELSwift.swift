@@ -310,9 +310,9 @@ public class ELSwift {
             ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
                     print("| ELSwift.initialize() \(#line) group.setReceiveHandler message:")
-                    print("| message: \(String(describing: message))")
+                    // print("| message: \(String(describing: message))")
                     print("| content: \(String(describing: content))")
-                    print("| isComplete: \(String(describing: isComplete))")
+                    // print("| isComplete: \(String(describing: isComplete))")
                     print("| ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath.localEndpoint))
                 }
 
@@ -537,6 +537,10 @@ public class ELSwift {
     /// コントローラとして、認識しているデバイス情報（facilities）を表示する
     public static func printFacilities() -> Void {
         print("-- ELSwift.printFacilities() --")
+        
+        if ELSwift.facilities == [:] {
+            return
+        }
 
         for (ip, objs) in ELSwift.facilities {
             print("- ip: \(ip)")
@@ -1597,7 +1601,7 @@ public class ELSwift {
             let seoj = els.SEOJ
 
             // 新規IP
-            if ELSwift.facilities[address] == nil { //見つからない
+            if ELSwift.facilities == [:] || ELSwift.facilities[address] == nil { //見つからない
                 if( Self.isDebug ) {
                     print("| New address:", address)
                 }
