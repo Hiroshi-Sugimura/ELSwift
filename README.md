@@ -39,7 +39,8 @@ $ swift test
 
 # Versions
 
-- 0.4.2 facilitiesにセマフォつけてみた
+- 0.4.3 facilitiesにセマフォつけてみた
+- 0.4.2 debug
 - 0.4.1 emptyチェック
 - 0.4.0 returnerをasyncとした
 - 0.3.9 debug print関連修正
