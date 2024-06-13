@@ -39,6 +39,7 @@ $ swift test
 
 # Versions
 
+- 0.4.1 emptyチェック
 - 0.4.0 returnerをasyncとした
 - 0.3.9 debug print関連修正
 - 0.3.8 Docc手直し、debug print関連修正
