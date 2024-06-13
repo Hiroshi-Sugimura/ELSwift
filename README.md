@@ -39,6 +39,8 @@ $ swift test
 
 # Versions
 
+- 0.3.9 debug print関連修正
+- 0.3.8 Docc手直し、debug print関連修正
 - 0.3.7 EL format 2でExceptionでるので解析するまえにrejectする（三菱TV等対応）
 - 0.3.6 delay 0.2でも平気みたいですが、どうでしょう
 - 0.3.5 queue名変更、port重複判定、sendQueue処理待ちを0.5秒にした、
@@ -58,5 +60,3 @@ $ swift test
 - 0.2.1 Swift-DocC対応していく。d7のdebug
 - 0.2.0 結構修正した。やっぱり0.1.0と互換性は無くなっていく
 - 0.1.0 とりあえずReleaseできた。エラーケースがチェック完璧じゃない。まだ色々、互換性を考えないで開発がすすむつもり
-
-
