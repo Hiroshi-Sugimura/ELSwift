@@ -1510,7 +1510,7 @@ public class ELSwift {
                             break
                         }
                         // print("# 9f", terminator: "")
-                        ELSwift.printUInt8Array(array)
+                       // ELSwift.printUInt8Array(array)
                         var epcpdcedt:T_EPCPDCEDT = []
                         let num:Int = Int( array[0] )
                         var i = 0
