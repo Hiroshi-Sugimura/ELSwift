@@ -39,6 +39,7 @@ $ swift test
 
 # Versions
 
+- 0.4.5 parseのException対応
 - 0.4.4 不要なprint
 - 0.4.3 facilitiesにセマフォつけてみた
 - 0.4.2 debug
