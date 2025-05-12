@@ -168,7 +168,7 @@ enum ELError: Error {
 //==============================================================================
 /// the main class for ELSwift, ECHONET Lite protocol
 /// ELSwift is available for only one object for an app. Multi object cannot exist.
-public class ELSwift {
+public actor ELSwift {
     /// ネットワークタイプ
     /// 内部プロパティ
     public static let networkType = "_networkplayground._udp."
@@ -217,7 +217,8 @@ public class ELSwift {
     /// Object
     public static let NODE_PROFILE_OBJECT: [UInt8] = [0x0e, 0xf0, 0x01]
     /// ECHONETネットワークで通信済みのデータを保持
-    public static var facilities: Dictionary<String, T_OBJs> = Dictionary<String, T_OBJs>()
+    /// 
+    static var facilities: Dictionary<String, T_OBJs> = Dictionary<String, T_OBJs>()
     /// facilitiesのためのセマフォ
     public static var facilitiesSemaphore  = DispatchSemaphore(value: 1)
     
@@ -266,7 +267,7 @@ public class ELSwift {
     ///   - callback:use's callback function, For receiving message, the callback is called.
     ///   - option:options, nil or fill all.
     /// - Returns: Void
-    public static func initialize(_ objList: [UInt8], _ callback: @escaping ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [UInt8], _ callback: @escaping @Sendable ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
             Self.isDebug = option?.debug ?? false
             // var AddressAlreadyInUse:Bool = false
@@ -326,7 +327,7 @@ public class ELSwift {
                 
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                    Task{
+                    Task{ @MainActor in
                         await ELSwift.returner( ip_port[0], content )
                     }
                 }else{
@@ -1275,7 +1276,7 @@ public class ELSwift {
     
     /// 変換系
     // 文字列操作が我慢できないので作る（1Byte文字固定）
-    public class func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
+    public static func substr(_ str:String, _ begginingIndex:UInt, _ count:UInt) throws -> String {
         // pre-condition
         let len = str.count
         if( len < begginingIndex + count ) { throw ELError.other("|BadRange str:\(str), begin:\(begginingIndex), count:\(count)") }
@@ -1621,6 +1622,16 @@ public class ELSwift {
             }
             ELSwift.userFunc!(rAddress, nil, error)
         }
+    }
+    
+    /// 内部変数 facilitiesを取得する
+    public static func getFacilities() -> Dictionary<String, T_OBJs> {
+        defer{
+            ELSwift.facilitiesSemaphore.signal()
+        }
+        ELSwift.facilitiesSemaphore.wait()
+        
+        return ELSwift.facilities
     }
     
     /// 内部関数

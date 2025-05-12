@@ -18,12 +18,18 @@ ELSwiftフォルダのELSwift.entitlementsをプロジェクトにコピーし�
 UDPのマルチキャストはセキュリティやプライバシ保護的にデフォルトで制限されているので、特別な設定が必要ということを知っておいてください。
 
 
-# らいせんす
+# License
 
-えむあいてー
+MITです。
+使用する場合は下記の情報をソフトウェアのヘルプやバージョン情報、マニュアルなどに記述してください。
+次の様に、わかる様にしてくれればフォーマットはお任せです。
 
 ```
-Copyright (c) 2023 SUGIMURA Hiroshi
+ELSwift, Copyright (c) 2023 SUGIMURA Hiroshi
+```
+
+```
+Copyright (c) 2023 SUGIMURA Hiroshi (ELSwift)
 ```
 
 # for Developper
@@ -39,6 +45,7 @@ $ swift test
 
 # Versions
 
+- 0.4.6 Swift6、actor対応、ELSwift.facilitiesをprivateにしてgetFacilitiesを追加、setFacilitiesは未だないが作る必要があるかから精査
 - 0.4.5 parseのException対応
 - 0.4.4 不要なprint
 - 0.4.3 facilitiesにセマフォつけてみた
