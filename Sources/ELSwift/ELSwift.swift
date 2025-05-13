@@ -264,7 +264,7 @@ public actor ELSwift {
     ///   - callback:use's callback function, For receiving message, the callback is called.
     ///   - option:options, nil or fill all.
     /// - Returns: Void
-    public static func initialize(_ objList: [UInt8], _ callback: @escaping @Sendable ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) async -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [UInt8], _ callback: (@escaping @Sendable (_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) async -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
             Self.isDebug = option?.debug ?? false
             // var AddressAlreadyInUse:Bool = false
@@ -1139,7 +1139,7 @@ public actor ELSwift {
                         // 0byte=epc, 2byte=pdc, 4byte=edt
                         for _ in 0 ..< pdc! {
                             // 登録
-                            var te_edt = epcpdcedt[safe: now]
+                            let te_edt = epcpdcedt[safe: now]
                             if( te_edt == nil ) {
                                 throw ELError.BadReceivedData
                             }
