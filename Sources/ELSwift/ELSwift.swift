@@ -219,13 +219,10 @@ public actor ELSwift {
     /// ECHONETネットワークで通信済みのデータを保持
     /// 
     static var facilities: Dictionary<String, T_OBJs> = Dictionary<String, T_OBJs>()
-    /// facilitiesのためのセマフォ
-    public static var facilitiesSemaphore  = DispatchSemaphore(value: 1)
-    
     
     /// 受信データの処理、ユーザが指定するコールバック関数
     /// 内部プロパティ
-    static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) -> Void)? = {_,_,_ in }
+    static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) async -> Void)? = {_,_,_ in }
     
     static var EL_obj: [UInt8]!
     static var EL_cls: [UInt8]!
@@ -267,7 +264,7 @@ public actor ELSwift {
     ///   - callback:use's callback function, For receiving message, the callback is called.
     ///   - option:options, nil or fill all.
     /// - Returns: Void
-    public static func initialize(_ objList: [UInt8], _ callback: @escaping @Sendable ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
+    public static func initialize(_ objList: [UInt8], _ callback: @escaping @Sendable ((_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) async -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
             Self.isDebug = option?.debug ?? false
             // var AddressAlreadyInUse:Bool = false
@@ -327,7 +324,7 @@ public actor ELSwift {
                 
                 if let ipa = message.remoteEndpoint {
                     let ip_port = ipa.debugDescription.components(separatedBy: ":")
-                    Task{ @MainActor in
+                    Task{
                         await ELSwift.returner( ip_port[0], content )
                     }
                 }else{
@@ -347,37 +344,39 @@ public actor ELSwift {
             }
             
             ELSwift.group.stateUpdateHandler = { (newState:NWConnectionGroup.State) in
-                if( Self.isDebug ) {
-                    print("|ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
-                    // print("|", String(describing: ELSwift.group))
-                    print("|ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
-                }
-                
-                switch newState {
-                case .ready:
-                    // 初期サーチ
-                    var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
-                    msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
-                    let groupSendContent = Data(msg)  // .data(using: .utf8)
-                    
-                    // if( Self.isDebug ) { print("send...UDP") }
-                    ELSwift.group.send(content: groupSendContent) { (error)  in
-                        if( Self.isDebug ) {
-                            print("|ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
+                Task{
+                    if( Self.isDebug ) {
+                        print("|ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
+                        // print("|", String(describing: ELSwift.group))
+                        print("|ELSwift.initialize() \(#line) NetworkMonitor:", String(describing: NetworkMonitor.monitor.currentPath))
                     }
                     
-                case .waiting(let error):
-                    if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler waiting") }
-                    if( Self.isDebug ) { print("|", error) }
-                case .setup:
-                    if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler setup") }
-                case .cancelled:
-                    if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler cancelled") }
-                case .failed:
-                    if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler failed") }
-                    callback("", nil, ELError.AddressAlreadyInUse)
-                default:
-                    if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler default") }
+                    switch newState {
+                    case .ready:
+                        // 初期サーチ
+                        var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
+                        msg.append(contentsOf:[ELSwift.GET, 0x01, 0xD6, 0x00])
+                        let groupSendContent = Data(msg)  // .data(using: .utf8)
+                        
+                        // if( Self.isDebug ) { print("send...UDP") }
+                        ELSwift.group.send(content: groupSendContent) { (error)  in
+                            if( Self.isDebug ) {
+                                print("|ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
+                        }
+                        
+                    case .waiting(let error):
+                        if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler waiting") }
+                        if( Self.isDebug ) { print("|", error) }
+                    case .setup:
+                        if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler setup") }
+                    case .cancelled:
+                        if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler cancelled") }
+                    case .failed:
+                        if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler failed") }
+                        await callback("", nil, ELError.AddressAlreadyInUse)
+                    default:
+                        if( Self.isDebug ) { print("|ELSwift.initialize() \(#line) group.startUpdateHandler default") }
+                    }
                 }
             }
             
@@ -546,10 +545,6 @@ public actor ELSwift {
     /// コントローラとして、認識しているデバイス情報（facilities）を表示する
     public static func printFacilities() -> Void {
         print("|-- ELSwift.printFacilities() --")
-        defer{
-            ELSwift.facilitiesSemaphore.signal()
-        }
-        ELSwift.facilitiesSemaphore.wait()
         
         if (ELSwift.facilities.isEmpty) {
             return
@@ -1607,7 +1602,7 @@ public actor ELSwift {
                 if( Self.isDebug ) {
                     print("|ELSwift.renewFacilities ip:", rAddress, "els:", ELSwift.getSeparatedString_ELDATA(els) )
                 }
-                try ELSwift.renewFacilities(rAddress, els)
+                try await ELSwift.renewFacilities(rAddress, els)
             }
             
             // 機器オブジェクトに関してはユーザー関数に任す
@@ -1615,32 +1610,23 @@ public actor ELSwift {
                 print("|ELSwift.userFunc rAddress:", rAddress)
                 // ELSwift.printEL_STRUCTURE(els)
             }
-            ELSwift.userFunc!(rAddress, els, nil)
+            await ELSwift.userFunc!(rAddress, els, nil)
         } catch {
             if( Self.isDebug ) {
                 print("|Error!! ELSwift.userFunc rAddress:", rAddress, content!, error)
             }
-            ELSwift.userFunc!(rAddress, nil, error)
+            await ELSwift.userFunc!(rAddress, nil, error)
         }
     }
     
     /// 内部変数 facilitiesを取得する
-    public static func getFacilities() -> Dictionary<String, T_OBJs> {
-        defer{
-            ELSwift.facilitiesSemaphore.signal()
-        }
-        ELSwift.facilitiesSemaphore.wait()
-        
+    public static func getFacilities() async -> Dictionary<String, T_OBJs> {
         return ELSwift.facilities
     }
     
     /// 内部関数
     // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
-    public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) throws -> Void {
-        defer{
-            ELSwift.facilitiesSemaphore.signal()
-        }
-        ELSwift.facilitiesSemaphore.wait()
+    public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) async throws -> Void {
         
         do {
             let epcList:T_DETAILs = try ELSwift.parseDetail(els.OPC, els.EPCPDCEDT);
