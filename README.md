@@ -45,6 +45,8 @@ $ swift test
 
 # Versions
 
+- 0.4.8 facilitiesManagerでデータアクセス管理
+- 0.4.7 actor対応のbugfix
 - 0.4.6 Swift6、actor対応、ELSwift.facilitiesをprivateにしてgetFacilitiesを追加、setFacilitiesは未だないが作る必要があるかから精査
 - 0.4.5 parseのException対応
 - 0.4.4 不要なprint
