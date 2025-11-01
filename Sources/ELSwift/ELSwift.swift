@@ -290,6 +290,10 @@ public actor ELSwift {
     public static var autoGetProperties: Bool = true
     /// initialize option: 自動プロパティ取得設定ONのときの、プロパティ取得ディレイ（未実装）
     public static var autoGetDelay: Int = 1000
+    /// 接続時のIPv4アドレス
+    public static var ipv4address: String? = nil
+    /// 接続時のIPv6アドレス
+    public static var ipv6address: String? = nil
     
     /// 短期連続送信しないための送信キュー
     static let sendQueue = OperationQueue()
@@ -335,6 +339,21 @@ public actor ELSwift {
                 
                 if path.status == .satisfied {
                     NetworkMonitor.connection = true
+                    
+                    let addresses = ELSwift.getIPAddresses()
+                    if let ipv4 = addresses.ipv4 {
+                        print("IPv4: \(ipv4)")
+                        ipv4address = ipv4
+                    }else{
+                        print("IPv4アドレスを取得できませんでした")
+                    }
+
+                    if let ipv6 = addresses.ipv6 {
+                        print("IPv6: \(ipv6)")
+                        ipv6address = ipv6
+                    }else{
+                        print("IPv6アドレスを取得できませんでした")
+                    }
                 } else {
                     NetworkMonitor.connection = false
                 }
@@ -1716,4 +1735,44 @@ public actor ELSwift {
         }
     }
     
-}  // [eoj]: T_DETAILs// "ip": T_OBJs
+    
+    // 内部関数 IPアドレス取得
+    static func getIPAddresses() -> (ipv4: String?, ipv6: String?) {
+        var ipv4Address: String?
+        var ipv6Address: String?
+
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return (nil, nil) }
+        defer { freeifaddrs(ifaddr) }
+
+        for ptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
+            let interface = ptr.pointee
+            let addrFamily = interface.ifa_addr.pointee.sa_family
+
+            if addrFamily == UInt8(AF_INET) || addrFamily == UInt8(AF_INET6) {
+                let name = String(cString: interface.ifa_name)
+                // ここでinterface名でWiFiなどの判定をしたい場合は以下の条件を使う
+                if name == "en0" {
+                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+
+                    getnameinfo(interface.ifa_addr,
+                                socklen_t(interface.ifa_addr.pointee.sa_len),
+                                &hostname,
+                                socklen_t(hostname.count),
+                                nil,
+                                socklen_t(0),
+                                NI_NUMERICHOST)
+
+                    let address = String(cString: hostname)
+                    if addrFamily == UInt8(AF_INET) {
+                        ipv4Address = address
+                    } else if addrFamily == UInt8(AF_INET6) {
+                        ipv6Address = address
+                    }
+                }
+            }
+        }
+        return (ipv4Address, ipv6Address)
+    }
+
+}
