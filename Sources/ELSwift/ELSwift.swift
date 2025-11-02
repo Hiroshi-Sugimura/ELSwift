@@ -515,6 +515,20 @@ public actor ELSwift {
         }
     }
     
+    
+    //---------------------------------------
+    // getter関数
+    /// IPv4address取得
+    public static func getIPv4Address() -> String? {
+        return ELSwift.ipv4address
+    }
+
+    /// IPv6address取得
+    public static func getIPv6Address() -> String? {
+        return ELSwift.ipv6address
+    }
+
+    
     //---------------------------------------
     /// 内部関数
     /// 受信データ処理
@@ -1687,7 +1701,7 @@ public actor ELSwift {
     }
     
     /// 内部関数
-    // ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
+    /// ネットワーク内のEL機器全体情報を更新する，受信したら勝手に実行される
     public static func renewFacilities(_ address:String, _ els:EL_STRUCTURE) async throws -> Void {
         
         do {
@@ -1736,7 +1750,7 @@ public actor ELSwift {
     }
     
     
-    // 内部関数 IPアドレス取得
+    /// 内部関数 IPアドレス取得
     static func getIPAddresses() -> (ipv4: String?, ipv6: String?) {
         var ipv4Address: String?
         var ipv6Address: String?
@@ -1774,5 +1788,5 @@ public actor ELSwift {
         }
         return (ipv4Address, ipv6Address)
     }
-
+    
 }

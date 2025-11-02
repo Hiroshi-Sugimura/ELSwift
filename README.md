@@ -45,6 +45,7 @@ $ swift test
 
 # Versions
 
+- 1.1.0 ip取得のgetter対応
 - 1.0.0 IPaddressの取得に対応、実績が増えてきたので一旦メジャーバージョンとしてリリース
 - 0.4.8 facilitiesManagerでデータアクセス管理
 - 0.4.7 actor対応のbugfix
