@@ -1218,7 +1218,9 @@ final class ELSwiftTests: XCTestCase {
         XCTAssertEqual(elsSetGetSNA.ESV, 0x5E)
         XCTAssertEqual(elsSetGetSNA.SEOJ, snaDEOJ)
         XCTAssertEqual(elsSetGetSNA.DEOJ, snaSEOJ)
-    }    func testSetCSNAResponseStructure() throws {
+    }
+
+    func testSetCSNAResponseStructure() throws {
         print("-- testSetCSNAResponseStructure")
         // SetC_SNA (ESV=50) の構造確認
 
