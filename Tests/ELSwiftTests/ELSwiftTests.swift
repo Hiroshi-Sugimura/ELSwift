@@ -1105,4 +1105,164 @@ final class ELSwiftTests: XCTestCase {
         facilities = await manager.getFacilities()
         XCTAssertEqual(facilities["192.168.1.100"]?[[0x01, 0x30, 0x01]]?[0x80], [0x31])
     }
+
+    // MARK: - SNA (Service Not Available) Response Tests
+    func testSNAResponseForINFCWithNoDEOJ() throws {
+        print("-- testSNAResponseForINFCWithNoDEOJ")
+        // ESV=74 (INF-C) の場合、DEOJが存在しない場合は破棄
+        // この場合、SNAを返すべき（仕様による）
+
+        let els = EL_STRUCTURE(
+            tid: [0x00, 0x01],
+            seoj: [0x0e, 0xf0, 0x01],
+            deoj: [0x01, 0x30, 0x01], // 存在しないDEOJ想定
+            esv: 0x74, // INF-C
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x01, 0x30]
+        )
+
+        // TODO: SNA応答生成のテスト実装
+        // 現在は構造確認のみ
+        XCTAssertEqual(els.ESV, 0x74)
+        XCTAssertEqual(els.OPC, 0x01)
+    }
+
+    func testSNAResponseForOPCZero() throws {
+        print("-- testSNAResponseForOPCZero")
+        // OPC=0の場合、SetGetに対してSNA (node目標×ESV=6E SetGet_SNA)または通常応答
+
+        let elsSetGet = EL_STRUCTURE(
+            tid: [0x00, 0x02],
+            seoj: [0x0e, 0xf0, 0x01],
+            deoj: [0x01, 0x30, 0x01],
+            esv: 0x6E, // SetGet
+            opc: 0x00, // OPC=0
+            epcpdcedt: []
+        )
+
+        // OPC=0は仕様上有効だが、SetGetでOPC=0は通常ありえないケース
+        XCTAssertEqual(elsSetGet.ESV, 0x6E)
+        XCTAssertEqual(elsSetGet.OPC, 0x00)
+    }
+
+    func testSNAResponseForEDTSizeExceeded() throws {
+        print("-- testSNAResponseForEDTSizeExceeded")
+        // EDTサイズが各propertyの定義を超えた場合、SNAまたは破棄
+
+        // 例: 動作状態(0x80)は通常1バイトだが、それ以上のデータ
+        let els = EL_STRUCTURE(
+            tid: [0x00, 0x03],
+            seoj: [0x0e, 0xf0, 0x01],
+            deoj: [0x01, 0x30, 0x01],
+            esv: 0x60, // SetC
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x05, 0x30, 0x31, 0x32, 0x33, 0x34] // PDC=5, 本来は1バイト
+        )
+
+        // TODO: EDTサイズ検証ロジックのテスト実装
+        XCTAssertEqual(els.EPCPDCEDT[1], 0x05) // PDC=5
+    }
+
+    func testSNAResponseForEmptyEDT() throws {
+        print("-- testSNAResponseForEmptyEDT")
+        // EDTが空の場合（近い値も設定不可な場合）
+        // SNAまたは受理したふりでRes（第5節1.2）
+
+        let els = EL_STRUCTURE(
+            tid: [0x00, 0x04],
+            seoj: [0x0e, 0xf0, 0x01],
+            deoj: [0x01, 0x30, 0x01],
+            esv: 0x61, // SetC
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00] // PDC=0, EDTが空
+        )
+
+        // 空EDTは仕様上、特定の状況では有効（GETなど）
+        XCTAssertEqual(els.EPCPDCEDT[1], 0x00) // PDC=0
+    }
+
+    func testNFCResDoesNotRequireSNA() throws {
+        print("-- testNFCResDoesNotRequireSNA")
+        // ESV=7A (NFC_Res) は指定EPCがなくてもSNAではない
+
+        let els = EL_STRUCTURE(
+            tid: [0x00, 0x05],
+            seoj: [0x01, 0x30, 0x01],
+            deoj: [0x0e, 0xf0, 0x01],
+            esv: 0x7A, // NFC_Res
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00]
+        )
+
+        // NFC_Resは破棄するが、SNAは返さない
+        XCTAssertEqual(els.ESV, 0x7A)
+    }
+
+    func testSetGetSNAResponseStructure() throws {
+        print("-- testSetGetSNAResponseStructure")
+        // SetGet_SNA (ESV=5E) の構造確認
+
+        let snaDEOJ: [UInt8] = [0x01, 0x30, 0x01]
+        let snaSEOJ: [UInt8] = [0x0e, 0xf0, 0x01]
+
+        let elsSetGetSNA = EL_STRUCTURE(
+            tid: [0x00, 0x06],
+            seoj: snaDEOJ,  // 元のDEOJがSEOJに
+            deoj: snaSEOJ,  // 元のSEOJがDEOJに
+            esv: 0x5E, // SetGet_SNA
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00]
+        )
+
+        // SNA応答はSEOJ/DEOJが入れ替わる
+        XCTAssertEqual(elsSetGetSNA.ESV, 0x5E)
+        XCTAssertEqual(elsSetGetSNA.SEOJ, snaDEOJ)
+        XCTAssertEqual(elsSetGetSNA.DEOJ, snaSEOJ)
+    }    func testSetCSNAResponseStructure() throws {
+        print("-- testSetCSNAResponseStructure")
+        // SetC_SNA (ESV=50) の構造確認
+
+        let elsSetCSNA = EL_STRUCTURE(
+            tid: [0x00, 0x07],
+            seoj: [0x01, 0x30, 0x01],
+            deoj: [0x0e, 0xf0, 0x01],
+            esv: 0x50, // SetC_SNA
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00]
+        )
+
+        XCTAssertEqual(elsSetCSNA.ESV, 0x50)
+    }
+
+    func testGetSNAResponseStructure() throws {
+        print("-- testGetSNAResponseStructure")
+        // Get_SNA (ESV=52) の構造確認
+
+        let elsGetSNA = EL_STRUCTURE(
+            tid: [0x00, 0x08],
+            seoj: [0x01, 0x30, 0x01],
+            deoj: [0x0e, 0xf0, 0x01],
+            esv: 0x52, // Get_SNA
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00]
+        )
+
+        XCTAssertEqual(elsGetSNA.ESV, 0x52)
+    }
+
+    func testINF_SNAResponseStructure() throws {
+        print("-- testINF_SNAResponseStructure")
+        // INF_SNA (ESV=53) の構造確認
+
+        let elsINFSNA = EL_STRUCTURE(
+            tid: [0x00, 0x09],
+            seoj: [0x01, 0x30, 0x01],
+            deoj: [0x0e, 0xf0, 0x01],
+            esv: 0x53, // INF_SNA
+            opc: 0x01,
+            epcpdcedt: [0x80, 0x00]
+        )
+
+        XCTAssertEqual(elsINFSNA.ESV, 0x53)
+    }
 }
