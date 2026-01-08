@@ -8,7 +8,7 @@
 
 import Foundation
 
-import Network
+@preconcurrency import Network
 import SystemConfiguration
 
 //==============================================================================
@@ -152,7 +152,7 @@ class CSendTask: Operation {
 /// 内部オブジェクト、WiFiの切り替えとか検知できる？
 struct NetworkMonitor {
     static let monitor = NWPathMonitor()
-    static var connection = true
+    nonisolated(unsafe) static var connection = true
 }
 
 
@@ -258,42 +258,42 @@ public actor ELSwift {
     
     /// 受信データの処理、ユーザが指定するコールバック関数
     /// 内部プロパティ
-    static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) async -> Void)? = {_,_,_ in }
+    nonisolated(unsafe) static var userFunc : ((_ rAddress:String, _ els: EL_STRUCTURE?, _ err: Error?) async -> Void)? = {_,_,_ in }
     
-    static var EL_obj: [UInt8]!
-    static var EL_cls: [UInt8]!
+    nonisolated(unsafe) static var EL_obj: [UInt8]?
+    nonisolated(unsafe) static var EL_cls: [UInt8]?
     
     /// 自身のプロパティ
-    public static var Node_details: T_DETAILs = T_DETAILs()
+    nonisolated(unsafe) public static var Node_details: T_DETAILs = T_DETAILs()
     
     ///送信時のTID自動設定用
     ///内部プロパティ
-    public static var tid: [UInt8] = [0x00, 0x01]
+    nonisolated(unsafe) public static var tid: [UInt8] = [0x00, 0x01]
     
     /// Listener
     /// 内部プロパティ
-    private static var group: NWConnectionGroup!
+    nonisolated(unsafe) private static var group: NWConnectionGroup?
     
     /// 初期化し、送受信開始済み
     /// ソフトウェアライフサイクルで利用するつもりだが未実装
-    static var isReady: Bool = false
-    public static var listening: Bool = true
+    nonisolated(unsafe) static var isReady: Bool = false
+    nonisolated(unsafe) public static var listening: Bool = true
     /// 受信データ処理をマルチスレッドで実施するためのディスパッチキュー
-    static var queue = DispatchQueue.global(qos: .userInitiated)
+    nonisolated(unsafe) static var queue = DispatchQueue.global(qos: .userInitiated)
     
     /// initialize option: デバッグログ出力設定
-    static var isDebug: Bool = false
+    nonisolated(unsafe) static var isDebug: Bool = false
     /// initialize option: 通信IPバージョン設定（ただし切り替え機能は未実装）
     /// 0 = IPv4 and IPv6, 4= IPv4, 6: IPv6
-    static var ipVer: Int = 0
+    nonisolated(unsafe) static var ipVer: Int = 0
     /// initialize option: 自動プロパティ取得設定
-    public static var autoGetProperties: Bool = true
+    nonisolated(unsafe) public static var autoGetProperties: Bool = true
     /// initialize option: 自動プロパティ取得設定ONのときの、プロパティ取得ディレイ（未実装）
-    public static var autoGetDelay: Int = 1000
+    nonisolated(unsafe) public static var autoGetDelay: Int = 1000
     /// 接続時のIPv4アドレス
-    public static var ipv4address: String? = nil
+    nonisolated(unsafe) public static var ipv4address: String? = nil
     /// 接続時のIPv6アドレス
-    public static var ipv6address: String? = nil
+    nonisolated(unsafe) public static var ipv6address: String? = nil
     
     /// 短期連続送信しないための送信キュー
     static let sendQueue = OperationQueue()
@@ -306,6 +306,7 @@ public actor ELSwift {
     /// - Returns: Void
     public static func initialize(_ objList: [UInt8], _ callback: (@escaping @Sendable (_ rAddress:String, _ els: EL_STRUCTURE?, _ error: Error?) async -> Void), option: (debug:Bool, ipVer:Int, autoGetProperties:Bool)? = nil ) throws -> Void {
         do{
+            print("|ELSwift.initialize() start")
             Self.isDebug = option?.debug ?? false
             // var AddressAlreadyInUse:Bool = false
             // 正しいオブジェクトリストのチェック
@@ -317,6 +318,7 @@ public actor ELSwift {
             // 初期設定値
             ipVer = option?.ipVer ?? 0
             autoGetProperties = option?.autoGetProperties ?? true
+            print("|ELSwift.initialize() options applied")
             
             if( Self.isDebug ) {
                 print("|==== ELSwift.init() =====")
@@ -329,6 +331,16 @@ public actor ELSwift {
             sendQueue.name = "net.sugi-lab.ELSwift.sendQueue"
             sendQueue.maxConcurrentOperationCount = 1
             sendQueue.qualityOfService = .userInitiated
+            
+            // 早期に初期化しておく（強制アンラップ回避のため）
+            EL_obj = objList
+            var classes: [UInt8] = [UInt8]()
+            for i in 0..<objList.count / 3 {
+                let begin = i * 3
+                let end = i * 3 + 1
+                classes += Array(objList[begin...end])
+            }
+            EL_cls = classes
             
             // 自分のIPを取得したいけど、どうやるんだか謎。
             // 下記でinterfaceリストまでは取れる
@@ -364,12 +376,19 @@ public actor ELSwift {
             //---- multicast
             //guard let multicast = try? NWMulticastGroup(for: [ .hostPort(host: "224.0.23.0", port: 3610)], disableUnicast: false)
             guard let multicast = try? NWMulticastGroup(for: [.hostPort(host: "224.0.23.0", port: 3610)])
-            else { fatalError("|ELSwift.initialize() \(#line) error in Muticast") }
+            else {
+                print("|ELSwift.initialize() \(#line) error in Multicast (likely port already in use)")
+                return
+            }
             
-            ELSwift.group = NWConnectionGroup(with: multicast, using: .udp)
+            print("|ELSwift.initialize() NWMulticastGroup success")
+            let parameters = NWParameters.udp
+            parameters.allowLocalEndpointReuse = true
+            ELSwift.group = NWConnectionGroup(with: multicast, using: parameters)
+            print("|ELSwift.initialize() NWConnectionGroup created")
             
             
-            ELSwift.group.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
+            ELSwift.group?.setReceiveHandler(maximumMessageSize: 1518, rejectOversizedMessages: true) { (message, content, isComplete) in
                 if( Self.isDebug ) {
                     //print("|ELSwift.initialize() \(#line) group.setReceiveHandler message: \(String(describing: message))")
                     //print("|content: \(String(describing: content))")
@@ -398,7 +417,7 @@ public actor ELSwift {
                  */
             }
             
-            ELSwift.group.stateUpdateHandler = { (newState:NWConnectionGroup.State) in
+            ELSwift.group?.stateUpdateHandler = { (newState:NWConnectionGroup.State) in
                 Task{
                     if( Self.isDebug ) {
                         print("|ELSwift.initialize() \(#line) group.startUpdateHandler newState: \(String(describing: newState))")
@@ -414,7 +433,7 @@ public actor ELSwift {
                         let groupSendContent = Data(msg)  // .data(using: .utf8)
                         
                         // if( Self.isDebug ) { print("send...UDP") }
-                        ELSwift.group.send(content: groupSendContent) { (error)  in
+                        ELSwift.group?.send(content: groupSendContent) { (error)  in
                             if( Self.isDebug ) {
                                 print("|ELSwift.initialize() \(#line) group.startUpdateHandler Send complete with error \(String(describing: error))") }
                         }
@@ -436,20 +455,11 @@ public actor ELSwift {
             }
             
             let queue = DispatchQueue(label: "ECHONETNetwork")
-            ELSwift.group.start(queue: queue)
+            print("|ELSwift.initialize() starting group")
+            ELSwift.group?.start(queue: queue)
+            print("|ELSwift.initialize() group started")
             
-            // 送信用ソケットの準備
-            EL_obj = objList
-            
-            var classes: [UInt8] = [UInt8]()
-            
-            for i in 0..<objList.count / 3 {
-                let begin = i * 3
-                let end = i * 3 + 1
-                classes += Array(objList[begin...end])
-            }
-            
-            EL_cls = classes
+            // 送信用ソケットの準備 (既に上で行っているので削除)
             
             // 自分のプロパティリスト（初期値はコントローラとして設定している）
             // super
@@ -458,22 +468,24 @@ public actor ELSwift {
             Node_details[0x8b] = [0x00, 0x00, 0x02] // business facility code, homeele = 00 00 02, get
             Node_details[0x9d] = [0x02, 0x80, 0xd5] // inf map, 1 Byte目は個数, get
             Node_details[0x9e] = [0x01, 0xbf]       // set map, 1 Byte目は個数, get
-            Node_details[0x9f] = [0x0f, 0x80, 0x82, 0x83, 0x88, 0x8a, 0x8b, 0x9d, 0x9e, 0x9f, 0xbf, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7] // get map, 1 Byte目は個数, get
             // detail
             Node_details[0x80] = [0x30] // 動作状態, get, inf
             Node_details[0x82] = [0x01, 0x0d, 0x01, 0x00] // EL version, 1.13, get
             Node_details[0x83] = [0xfe, 0x00, 0x00, 0x77, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01] // identifier, initialize時に、mac addressできちんとユニークの値にセットとよい, get
             Node_details[0xbf] = [0x80, 0x00] // 個体識別情報, Unique identifier data
-            Node_details[0xd3] = [0x00, 0x00, UInt8(EL_obj.count/3)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
-            Node_details[0xd4] = [0x00, UInt8(EL_cls.count/2 + 1)]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, D4はノードプロファイルをカウントする(+1), get
-            Node_details[0xd5] = [UInt8(EL_obj.count/3)] + EL_obj    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算 anno (3 Byteで1 objectなので3で割り算)
+            Node_details[0xd3] = [0x00, 0x00, UInt8((EL_obj?.count ?? 0)/3)]  // 自ノードで保持するインスタンスリストの総数（ノードプロファイル含まない）, initialize時にuser項目から自動計算, get
+            Node_details[0xd4] = [0x00, UInt8((EL_cls?.count ?? 0)/2 + 1)]        // 自ノードクラス数（ノードプロファイル含む）, initialize時にuser項目から自動計算, D4はノードプロファイルをカウントする(+1), get
+            Node_details[0xd5] = [UInt8((EL_obj?.count ?? 0)/3)] + (EL_obj ?? [])    // インスタンスリスト通知, 1Byte目はインスタンス数, initialize時にuser項目から自動計算 anno (3 Byteで1 objectなので3で割り算)
             Node_details[0xd6] = Node_details[0xd5]   // 自ノードインスタンスリストS, initialize時にuser項目から自動計算, get
-            Node_details[0xd7] = [ UInt8(EL_cls.count/2)] + EL_cls     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get (2 Byteで1 classなので２で割り算)
+            Node_details[0xd7] = [ UInt8((EL_cls?.count ?? 0)/2)] + (EL_cls ?? [])     // 自ノードクラスリストS, initialize時にuser項目から自動計算, get (2 Byteで1 classなので２で割り算)
             
             // 初期化終わったのでノードのINFをだす
-            try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, Node_details[0xd5]! )
+            if let d5 = Node_details[0xd5] {
+                try ELSwift.sendOPC1( EL_Multi, [0x0e,0xf0,0x01], [0x0e,0xf0,0x01], 0x73, 0xd5, d5 )
+            }
             
             ELSwift.userFunc = callback
+            ELSwift.isReady = true
             
         } catch {
             throw error
@@ -482,9 +494,21 @@ public actor ELSwift {
     }
     
     /// ELSwiftの通信終了
+    public static func stop() {
+        if( Self.isDebug ) { print("|ELSwift.stop()") }
+        if group != nil {
+            group?.cancel()
+        }
+        NetworkMonitor.monitor.cancel()
+        sendQueue.cancelAllOperations()
+        isReady = false
+        listening = false
+    }
+
+    /// ELSwiftの通信終了 (stopのエイリアス、後方互換性のため維持)
     public static func release () {
         if( Self.isDebug ) { print("|ELSwift.release()") }
-        group.cancel()
+        Self.stop()
     }
     
     /// ELSwiftの通信しているか？初期化動作済みか？をチェックする
@@ -643,7 +667,9 @@ public actor ELSwift {
         }
         
         let queue = DispatchQueue(label: "sendBase")
-        let socket = NWConnection(host: NWEndpoint.Host(toip), port: 3610, using: .udp)
+        let parameters = NWParameters.udp
+        parameters.allowLocalEndpointReuse = true
+        let socket = NWConnection(host: NWEndpoint.Host(toip), port: 3610, using: parameters)
         
         // 送信完了時の処理のクロージャ
         let completion = NWConnection.SendCompletion.contentProcessed { error in
@@ -669,7 +695,8 @@ public actor ELSwift {
             case .cancelled: break
             case .preparing: break
             @unknown default:
-                fatalError("|ELSwift.sendBase() Illegal state")
+                print("|ELSwift.sendBase() Illegal state")
+                return
             }
         }
         
@@ -797,7 +824,7 @@ public actor ELSwift {
     public static func sendAsyncELS(_ ip:String, _ els:EL_STRUCTURE ) throws -> Void {
         if( Self.isDebug ) { print("|S <-- ELSwift.sendAsyncELS(els)") }
         
-        sendQueue.addOperations([CSendTask(ip, els)], waitUntilFinished: false)
+        sendQueue.addOperation(CSendTask(ip, els))
     }
     
     /// 非同期 送信系
@@ -818,7 +845,7 @@ public actor ELSwift {
             tid: [0x00, 0x00], seoj: seoj, deoj: deoj, esv: esv, opc: 0x01, epcpdcedt: epcpdcedt)
         
         // データができたので送信する
-        sendQueue.addOperations([CSendTask(toip, els)], waitUntilFinished: false)
+        sendQueue.addOperation(CSendTask(toip, els))
     }
     
     /// 非同期 送信系
@@ -829,14 +856,14 @@ public actor ELSwift {
         let els: EL_STRUCTURE = try ELSwift.parseBytes(array)
         
         // データができたので送信する
-        sendQueue.addOperations([CSendTask(toip, els)], waitUntilFinished: false)
+        sendQueue.addOperation(CSendTask(toip, els))
     }
     
     //------------ multi send
     /// 送信系
     public static func sendBaseMulti(_ data: Data)  throws -> Void {
         if( Self.isDebug ) { print("|S <= ELSwift.sendBaseMulti(Data)") }
-        ELSwift.group.send(content: data) { (error)  in
+        ELSwift.group?.send(content: data) { (error)  in
             if( error != nil ) {
                 print("Error!! ELSwift.sendBaseMulti(Data) Send complete with error: \(String(describing: error))")
             }
@@ -848,7 +875,7 @@ public actor ELSwift {
         if( Self.isDebug ) { print("|S <= ELSwift.sendBaseMulti(UInt8)") }
         // 送信
         let groupSendContent = Data(msg)  // .data(using: .utf8)
-        ELSwift.group.send(content: groupSendContent) { (error) in
+        ELSwift.group?.send(content: groupSendContent) { (error) in
             if error != nil {
                 print(
                     "Error!! ELSwift.sendBaseMulti([UInt8]) Send complete with error: \(String(describing: error))"
@@ -911,7 +938,7 @@ public actor ELSwift {
         var msg:[UInt8] = ELSwift.EHD + ELSwift.tid + [0x0e, 0xf0, 0x01] + [0x0e, 0xf0, 0x01 ]
         msg.append(contentsOf: [ELSwift.GET, 0x01, 0xD6, 0x00])
         let groupSendContent = Data(msg)  // .data(using: .utf8)
-        ELSwift.group.send(content: groupSendContent) { (error)  in
+        ELSwift.group?.send(content: groupSendContent) { (error)  in
             if( error != nil ) {
                 print("|Error!! ELSwift.search() Send complete with error: \(String(describing: error))")
             }
@@ -931,14 +958,14 @@ public actor ELSwift {
             
             let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x04, epcpdcedt:[0x83, 0x00, 0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
             
-            sendQueue.addOperations([CSendTask(ip, els)], waitUntilFinished: false)
+            sendQueue.addOperation(CSendTask(ip, els))
             // ELSwift.sendDetails( ip, ELSwift.NODE_PROFILE_OBJECT, eoj, ELSwift.GET, {'83':'', '9d':'', '9e':'', '9f':''})
             
         } else {
             // デバイスオブジェクト
             let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:eoj, esv:ELSwift.GET, opc:0x03, epcpdcedt:[0x9d, 0x00, 0x9e, 0x00, 0x9f, 0x00])
             
-            sendQueue.addOperations([CSendTask(ip, els)], waitUntilFinished: false)
+            sendQueue.addOperation(CSendTask(ip, els))
         }
         
     }
@@ -1464,17 +1491,14 @@ public actor ELSwift {
         //        let els;
         do {
             // ヘッダ確認、format2を解析しない
-            if let bytes = content {
-                if( Array(bytes[0...1]) != [0x10, 0x81] ) {
-                    if( Self.isDebug ) { print("|Data is reject, EL format2. content: \(bytes)") }
-                    return
-                }
-            } else {
+            guard let bytes = content else { return }
+            if( Array(bytes[0...1]) != [0x10, 0x81] ) {
+                if( Self.isDebug ) { print("|Data is reject, EL format2. content: \(bytes)") }
                 return
             }
             
             // パースしてみる
-            var els: EL_STRUCTURE = try ELSwift.parseData(content!)
+            var els: EL_STRUCTURE = try ELSwift.parseData(bytes)
             
             if (els.EHD != [0x10, 0x81]) {
                 return
@@ -1505,7 +1529,7 @@ public actor ELSwift {
                     if(  ELSwift.autoGetProperties ) {
                         for (epc, _) in els.DETAILs {
                             let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x01, epcpdcedt: [epc, 0x00] )
-                            sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                            sendQueue.addOperation(CSendTask(rAddress, els))
                         }
                     }
                     break
@@ -1542,7 +1566,9 @@ public actor ELSwift {
                 case ELSwift.INF_REQ: // 0x63
                     if ( els.DETAILs[0xd5] == [0x00] ) {  // EL ver. 1.0以前のコントローラからサーチされた場合のレスポンス
                         // console.log( "ELSwift.returner: Ver1.0 INF_REQ.")
-                        try ELSwift.sendOPC1Multi(ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.INF, 0xd5, ELSwift.Node_details[0xd5]!)
+                        if let d5 = ELSwift.Node_details[0xd5] {
+                            try ELSwift.sendOPC1Multi(ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.INF, 0xd5, d5)
+                        }
                     }
                     break
                     
@@ -1561,7 +1587,7 @@ public actor ELSwift {
                         for (epc, _) in els.DETAILs {
                             let els:EL_STRUCTURE = EL_STRUCTURE(tid:[0x00,0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x01, epcpdcedt: [epc, 0x00] )
                             
-                            sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                            sendQueue.addOperation(CSendTask(rAddress, els))
                         }
                     }
                     break
@@ -1621,7 +1647,7 @@ public actor ELSwift {
                         }
                         
                         let els:EL_STRUCTURE = EL_STRUCTURE( tid:[0x00, 0x00], seoj:ELSwift.NODE_PROFILE_OBJECT, deoj:els.SEOJ, esv:ELSwift.GET, opc:0x03, epcpdcedt:epcpdcedt)
-                        sendQueue.addOperations( [CSendTask( rAddress, els)], waitUntilFinished: false)
+                        sendQueue.addOperation(CSendTask(rAddress, els))
                         
                         // old try ELSwift.sendDetails( rAddress, ELSwift.NODE_PROFILE_OBJECT, els.SEOJ, ELSwift.GET, details)
                     }
