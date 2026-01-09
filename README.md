@@ -91,7 +91,7 @@ ELSwift.stop()
 ## 📄 License
 
 **MIT License**
-Copyright (c) 2023-2026 SUGIMURA Hiroshi
+Copyright (c) 2023 SUGIMURA Hiroshi
 
 > [!TIP]
 > アプリケーションの「バージョン情報」や「ヘルプ」などに、著作権表示を含めていただけると幸いです。
