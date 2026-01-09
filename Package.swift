@@ -27,15 +27,9 @@ let package = Package(
         .target(
             name: "ELSwift",
             dependencies: [],
-            exclude: ["ELSwift.entitlements"],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency")
-            ]),
+            exclude: ["ELSwift.entitlements"]),
         .testTarget(
             name: "ELSwiftTests",
-            dependencies: ["ELSwift"],
-            swiftSettings: [
-                .enableUpcomingFeature("StrictConcurrency")
-            ]),
+            dependencies: ["ELSwift"]),
     ]
 )
