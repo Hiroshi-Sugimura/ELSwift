@@ -65,10 +65,10 @@ try ELSwift.search()
 
 ```swift
 // 特定のデバイスに対してプロパティ取得を送信
-try ELSwift.sendOPC1("192.168.1.10", 
+try ELSwift.sendOPC1("192.168.1.10",
                         [0x0e, 0xf0, 0x01], // SEOJ
                         [0x01, 0x30, 0x01], // DEOJ (例: エアコン)
-                        ELSwift.GET, 
+                        ELSwift.GET,
                         0x80, // EPC (動作状態)
                         [])
 ```
@@ -100,7 +100,8 @@ Copyright (c) 2023 SUGIMURA Hiroshi
 
 ## 📜 Versions
 
-- **1.2.0** ✨: `stop()` メソッド追加、Swift 6 並行処理対応、`allowLocalEndpointReuse = true` 有効化、強制アンラップ排除による安定化。
+- **1.3.0** ✨: Swift 6.0 Strict Concurrency 完全対応、GitHub Actions (CI) の修正とテスト自動化、コンフリクト解消による安定化。
+- **1.2.0** : `stop()` メソッド追加、Swift 6 並行処理対応、`allowLocalEndpointReuse = true` 有効化、強制アンラップ排除による安定化。
 - **1.1.0** : ip取得のgetter対応。
 - **1.0.0** : IPaddressの取得に対応、実績が増えてきたので一旦メジャーバージョンとしてリリース。
 - **0.4.8** : facilitiesManagerでデータアクセス管理。

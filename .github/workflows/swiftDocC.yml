@@ -15,10 +15,10 @@ jobs:
     steps:
     - uses: swift-actions/setup-swift@v2
       with:
-        swift-version: '5.10'
+        swift-version: '6.0'
     - name: Get swift version
       run: |
-        swift --version # Swift 5.10
+        swift --version # Swift 6.0
     - uses: actions/checkout@v4
     - name: build docc
       run: |
@@ -44,4 +44,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4 
+        uses: actions/deploy-pages@v4
